@@ -1,11 +1,12 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { googleSheetsService } from "@/services/googleSheetsService";
 
 interface WorkoutSet {
   reps: number;
@@ -19,15 +20,29 @@ interface Exercise {
 }
 
 const WorkoutLogger = () => {
-  const [exercises, setExercises] = useState<Exercise[]>([
-    {
-      id: "1",
-      name: "Guggolás",
-      sets: [{ reps: 0, weight: 0 }]
-    }
-  ]);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [availableExercises, setAvailableExercises] = useState<string[]>([]);
   const [newExerciseName, setNewExerciseName] = useState("");
   const { toast } = useToast();
+
+  useEffect(() => {
+    // Load available exercises from Google Sheets
+    const loadExercises = async () => {
+      const exercises = await googleSheetsService.getWorkoutExercises();
+      setAvailableExercises(exercises);
+      
+      // Initialize with first exercise if none exist
+      if (exercises.length > 0) {
+        setExercises([{
+          id: "1",
+          name: exercises[0],
+          sets: [{ reps: 0, weight: 0 }]
+        }]);
+      }
+    };
+    
+    loadExercises();
+  }, []);
 
   const addExercise = () => {
     if (!newExerciseName.trim()) return;
@@ -75,19 +90,34 @@ const WorkoutLogger = () => {
     setExercises(exercises.filter(exercise => exercise.id !== exerciseId));
   };
 
-  const saveWorkout = () => {
-    // Itt később Google Sheets integráció lesz
-    toast({
-      title: "Edzés mentve!",
-      description: "Az adatok sikeresen feltöltve a Google Sheets-be.",
-    });
+  const saveWorkout = async () => {
+    const workoutData = exercises.map(exercise => ({
+      exercise: exercise.name,
+      sets: exercise.sets,
+      date: new Date().toISOString().split('T')[0]
+    }));
+
+    const success = await googleSheetsService.saveWorkoutData(workoutData);
+    
+    if (success) {
+      toast({
+        title: "Edzés mentve!",
+        description: "Az adatok sikeresen feltöltve a Google Sheets-be.",
+      });
+    } else {
+      toast({
+        title: "Hiba történt",
+        description: "Nem sikerült menteni az edzést. Próbáld újra!",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="bg-gray-900 border-gray-700">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-white">
             <Plus className="w-5 h-5" />
             Új gyakorlat hozzáadása
           </CardTitle>
@@ -99,8 +129,15 @@ const WorkoutLogger = () => {
               value={newExerciseName}
               onChange={(e) => setNewExerciseName(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && addExercise()}
+              className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
+              list="available-exercises"
             />
-            <Button onClick={addExercise}>
+            <datalist id="available-exercises">
+              {availableExercises.map((exercise, index) => (
+                <option key={index} value={exercise} />
+              ))}
+            </datalist>
+            <Button onClick={addExercise} className="bg-yellow-400 hover:bg-yellow-500 text-black">
               <Plus className="w-4 h-4" />
             </Button>
           </div>
@@ -108,15 +145,15 @@ const WorkoutLogger = () => {
       </Card>
 
       {exercises.map((exercise) => (
-        <Card key={exercise.id}>
+        <Card key={exercise.id} className="bg-gray-900 border-gray-700">
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle>{exercise.name}</CardTitle>
+              <CardTitle className="text-white">{exercise.name}</CardTitle>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => removeExercise(exercise.id)}
-                className="text-red-600 hover:text-red-700"
+                className="text-red-400 hover:text-red-300 border-gray-600 hover:bg-red-900/20"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -125,25 +162,27 @@ const WorkoutLogger = () => {
           <CardContent className="space-y-4">
             {exercise.sets.map((set, index) => (
               <div key={index} className="flex gap-2 items-center">
-                <Label className="w-16">Sorozat {index + 1}</Label>
+                <Label className="w-16 text-gray-300">Sorozat {index + 1}</Label>
                 <div className="flex-1 grid grid-cols-2 gap-2">
                   <div>
-                    <Label className="text-xs text-gray-600">Ismétlés</Label>
+                    <Label className="text-xs text-gray-400">Ismétlés</Label>
                     <Input
                       type="number"
                       value={set.reps || ''}
                       onChange={(e) => updateSet(exercise.id, index, 'reps', parseInt(e.target.value) || 0)}
                       placeholder="0"
+                      className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-gray-600">Súly (kg)</Label>
+                    <Label className="text-xs text-gray-400">Súly (kg)</Label>
                     <Input
                       type="number"
                       value={set.weight || ''}
                       onChange={(e) => updateSet(exercise.id, index, 'weight', parseFloat(e.target.value) || 0)}
                       placeholder="0"
                       step="0.5"
+                      className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
                     />
                   </div>
                 </div>
@@ -152,7 +191,7 @@ const WorkoutLogger = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => removeSet(exercise.id, index)}
-                    className="text-red-600"
+                    className="text-red-400 border-gray-600 hover:bg-red-900/20"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -162,7 +201,7 @@ const WorkoutLogger = () => {
             <Button
               variant="outline"
               onClick={() => addSet(exercise.id)}
-              className="w-full"
+              className="w-full border-gray-600 text-gray-300 hover:bg-gray-800"
             >
               <Plus className="w-4 h-4 mr-2" />
               Újabb sorozat
@@ -171,7 +210,7 @@ const WorkoutLogger = () => {
         </Card>
       ))}
 
-      <Button onClick={saveWorkout} className="w-full bg-green-600 hover:bg-green-700 text-white">
+      <Button onClick={saveWorkout} className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-medium">
         <Save className="w-4 h-4 mr-2" />
         Edzés mentése
       </Button>

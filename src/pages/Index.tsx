@@ -25,33 +25,33 @@ const Index = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+      <div className="min-h-screen bg-black">
         <div className="container mx-auto px-4 py-16">
           <div className="max-w-4xl mx-auto text-center">
             <div className="mb-12">
-              <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent mb-4">
+              <h1 className="text-5xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-300 bg-clip-text text-transparent mb-4">
                 FitTracker Pro
               </h1>
-              <p className="text-xl text-gray-600 mb-8">
+              <p className="text-xl text-gray-300 mb-8">
                 Professzionális edzés- és étrendkövető rendszer személyi edzőknek és klienseiknek
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
-              <Card className="border-2 hover:border-blue-300 transition-all duration-300 hover:shadow-lg">
+              <Card className="border-2 border-gray-700 bg-gray-900 hover:border-yellow-400 transition-all duration-300 hover:shadow-lg hover:shadow-yellow-400/20">
                 <CardHeader className="text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Users className="w-8 h-8 text-blue-600" />
+                  <div className="w-16 h-16 mx-auto mb-4 bg-yellow-400/20 rounded-full flex items-center justify-center">
+                    <Users className="w-8 h-8 text-yellow-400" />
                   </div>
-                  <CardTitle className="text-2xl text-blue-700">Kliens Belépés</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-2xl text-yellow-400">Kliens Belépés</CardTitle>
+                  <CardDescription className="text-gray-300">
                     Követd az edzéseidet, testsúlyodat és étrendedet
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Button 
                     onClick={() => handleGoogleAuth("client")} 
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg"
+                    className="w-full bg-yellow-400 hover:bg-yellow-500 text-black py-3 text-lg font-medium"
                   >
                     <Activity className="w-5 h-5 mr-2" />
                     Belépés Google-lel
@@ -59,20 +59,20 @@ const Index = () => {
                 </CardContent>
               </Card>
 
-              <Card className="border-2 hover:border-green-300 transition-all duration-300 hover:shadow-lg">
+              <Card className="border-2 border-gray-700 bg-gray-900 hover:border-yellow-400 transition-all duration-300 hover:shadow-lg hover:shadow-yellow-400/20">
                 <CardHeader className="text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
-                    <Settings className="w-8 h-8 text-green-600" />
+                  <div className="w-16 h-16 mx-auto mb-4 bg-yellow-400/20 rounded-full flex items-center justify-center">
+                    <Settings className="w-8 h-8 text-yellow-400" />
                   </div>
-                  <CardTitle className="text-2xl text-green-700">Edző Belépés</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-2xl text-yellow-400">Edző Belépés</CardTitle>
+                  <CardDescription className="text-gray-300">
                     Kövesd a klienseid haladását és kezeld az adatokat
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Button 
                     onClick={() => handleGoogleAuth("admin")} 
-                    className="w-full bg-green-600 hover:bg-green-700 text-white py-3 text-lg"
+                    className="w-full bg-yellow-400 hover:bg-yellow-500 text-black py-3 text-lg font-medium"
                   >
                     <Target className="w-5 h-5 mr-2" />
                     Admin Belépés
@@ -83,25 +83,25 @@ const Index = () => {
 
             <div className="mt-16 grid md:grid-cols-3 gap-6 text-center">
               <div className="p-6">
-                <div className="w-12 h-12 mx-auto mb-4 bg-orange-100 rounded-full flex items-center justify-center">
-                  <Activity className="w-6 h-6 text-orange-600" />
+                <div className="w-12 h-12 mx-auto mb-4 bg-yellow-400/20 rounded-full flex items-center justify-center">
+                  <Activity className="w-6 h-6 text-yellow-400" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Edzéskövetés</h3>
-                <p className="text-gray-600">Rögzítsd ismétléseidet és súlyaidat egyszerűen</p>
+                <h3 className="text-lg font-semibold mb-2 text-white">Edzéskövetés</h3>
+                <p className="text-gray-400">Rögzítsd ismétléseidet és súlyaidat egyszerűen</p>
               </div>
               <div className="p-6">
-                <div className="w-12 h-12 mx-auto mb-4 bg-purple-100 rounded-full flex items-center justify-center">
-                  <Apple className="w-6 h-6 text-purple-600" />
+                <div className="w-12 h-12 mx-auto mb-4 bg-yellow-400/20 rounded-full flex items-center justify-center">
+                  <Apple className="w-6 h-6 text-yellow-400" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Étrendtervezés</h3>
-                <p className="text-gray-600">Kövesd és tervezd az étkezéseidet</p>
+                <h3 className="text-lg font-semibold mb-2 text-white">Étrendtervezés</h3>
+                <p className="text-gray-400">Kövesd és tervezd az étkezéseidet</p>
               </div>
               <div className="p-6">
-                <div className="w-12 h-12 mx-auto mb-4 bg-indigo-100 rounded-full flex items-center justify-center">
-                  <Target className="w-6 h-6 text-indigo-600" />
+                <div className="w-12 h-12 mx-auto mb-4 bg-yellow-400/20 rounded-full flex items-center justify-center">
+                  <Target className="w-6 h-6 text-yellow-400" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Google Integráció</h3>
-                <p className="text-gray-600">Automatikus szinkronizálás Google Sheets-szel</p>
+                <h3 className="text-lg font-semibold mb-2 text-white">Google Integráció</h3>
+                <p className="text-gray-400">Automatikus szinkronizálás Google Sheets-szel</p>
               </div>
             </div>
           </div>
@@ -111,7 +111,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-black">
       {userType === "client" ? <ClientDashboard /> : <AdminPanel />}
     </div>
   );
