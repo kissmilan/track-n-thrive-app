@@ -179,8 +179,8 @@ const WorkoutLogger = () => {
                     </Button>}
                 </div>
                 <div className="flex gap-4 text-sm text-gray-400">
-                  <span className="text-xl">Munka sorozatok: {exercise.workSets}</span>
-                  <span className="text-xl text-[#ffdb58]">Ismétlések: {exercise.repRange}</span>
+                  <span className="text-xl text-[#ffdb58] font-medium">Munka sorozatok: {exercise.workSets}</span>
+                  <span className="text-xl text-[#ffdb58] font-medium">Ismétlések: {exercise.repRange}</span>
                 </div>
               </div>
               <Button variant={exercise.completed ? "default" : "outline"} size="sm" onClick={() => markExerciseComplete(exerciseIndex)} className={exercise.completed ? "bg-green-600 hover:bg-green-700" : "border-gray-600 hover:bg-gray-800"}>
