@@ -4,105 +4,101 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Save, Trash2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Save, PlayCircle, CheckCircle, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { googleSheetsService } from "@/services/googleSheetsService";
-
-interface WorkoutSet {
-  reps: number;
-  weight: number;
-}
-
-interface Exercise {
-  id: string;
-  name: string;
-  sets: WorkoutSet[];
-}
+import { googleSheetsService, WorkoutSheet, WorkoutExercise } from "@/services/googleSheetsService";
 
 const WorkoutLogger = () => {
-  const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [availableExercises, setAvailableExercises] = useState<string[]>([]);
-  const [newExerciseName, setNewExerciseName] = useState("");
+  const [workoutSheets, setWorkoutSheets] = useState<WorkoutSheet[]>([]);
+  const [selectedSheet, setSelectedSheet] = useState<string>("");
+  const [selectedWeek, setSelectedWeek] = useState<number>(1);
+  const [currentExercises, setCurrentExercises] = useState<WorkoutExercise[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load available exercises from Google Sheets
-    const loadExercises = async () => {
-      const exercises = await googleSheetsService.getWorkoutExercises();
-      setAvailableExercises(exercises);
+    const loadWorkoutSheets = async () => {
+      const sheets = await googleSheetsService.getWorkoutSheets();
+      setWorkoutSheets(sheets);
       
-      // Initialize with first exercise if none exist
-      if (exercises.length > 0) {
-        setExercises([{
-          id: "1",
-          name: exercises[0],
-          sets: [{ reps: 0, weight: 0 }]
-        }]);
+      if (sheets.length > 0) {
+        setSelectedSheet(sheets[0].name);
+        setCurrentExercises(sheets[0].weeks[0]?.exercises || []);
       }
     };
     
-    loadExercises();
+    loadWorkoutSheets();
   }, []);
 
-  const addExercise = () => {
-    if (!newExerciseName.trim()) return;
-    
-    const newExercise: Exercise = {
-      id: Date.now().toString(),
-      name: newExerciseName,
-      sets: [{ reps: 0, weight: 0 }]
-    };
-    
-    setExercises([...exercises, newExercise]);
-    setNewExerciseName("");
+  useEffect(() => {
+    if (selectedSheet && workoutSheets.length > 0) {
+      const sheet = workoutSheets.find(s => s.name === selectedSheet);
+      if (sheet) {
+        const week = sheet.weeks.find(w => w.weekNumber === selectedWeek);
+        setCurrentExercises(week?.exercises || []);
+      }
+    }
+  }, [selectedSheet, selectedWeek, workoutSheets]);
+
+  const updateExerciseSet = (exerciseIndex: number, setIndex: number, field: 'weight' | 'reps', value: number) => {
+    setCurrentExercises(prev => prev.map((exercise, eIndex) => {
+      if (eIndex === exerciseIndex) {
+        const newSets = [...exercise.sets];
+        if (!newSets[setIndex]) {
+          newSets[setIndex] = { weight: 0, reps: 0 };
+        }
+        newSets[setIndex] = { ...newSets[setIndex], [field]: value };
+        
+        return { ...exercise, sets: newSets };
+      }
+      return exercise;
+    }));
   };
 
-  const addSet = (exerciseId: string) => {
-    setExercises(exercises.map(exercise => 
-      exercise.id === exerciseId 
-        ? { ...exercise, sets: [...exercise.sets, { reps: 0, weight: 0 }] }
-        : exercise
-    ));
+  const addSetToExercise = (exerciseIndex: number) => {
+    setCurrentExercises(prev => prev.map((exercise, eIndex) => {
+      if (eIndex === exerciseIndex && exercise.sets.length < 5) {
+        return { ...exercise, sets: [...exercise.sets, { weight: 0, reps: 0 }] };
+      }
+      return exercise;
+    }));
   };
 
-  const updateSet = (exerciseId: string, setIndex: number, field: 'reps' | 'weight', value: number) => {
-    setExercises(exercises.map(exercise => 
-      exercise.id === exerciseId 
-        ? {
-            ...exercise,
-            sets: exercise.sets.map((set, index) => 
-              index === setIndex ? { ...set, [field]: value } : set
-            )
-          }
-        : exercise
-    ));
+  const removeSetFromExercise = (exerciseIndex: number, setIndex: number) => {
+    setCurrentExercises(prev => prev.map((exercise, eIndex) => {
+      if (eIndex === exerciseIndex) {
+        return { ...exercise, sets: exercise.sets.filter((_, sIndex) => sIndex !== setIndex) };
+      }
+      return exercise;
+    }));
   };
 
-  const removeSet = (exerciseId: string, setIndex: number) => {
-    setExercises(exercises.map(exercise => 
-      exercise.id === exerciseId 
-        ? { ...exercise, sets: exercise.sets.filter((_, index) => index !== setIndex) }
-        : exercise
-    ));
-  };
-
-  const removeExercise = (exerciseId: string) => {
-    setExercises(exercises.filter(exercise => exercise.id !== exerciseId));
+  const markExerciseComplete = (exerciseIndex: number) => {
+    setCurrentExercises(prev => prev.map((exercise, eIndex) => {
+      if (eIndex === exerciseIndex) {
+        return { ...exercise, completed: !exercise.completed };
+      }
+      return exercise;
+    }));
   };
 
   const saveWorkout = async () => {
-    const workoutData = exercises.map(exercise => ({
-      exercise: exercise.name,
-      sets: exercise.sets,
-      date: new Date().toISOString().split('T')[0]
-    }));
+    if (!selectedSheet) {
+      toast({
+        title: "Hiba",
+        description: "Válassz edzés típust!",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    const success = await googleSheetsService.saveWorkoutData(workoutData);
+    const success = await googleSheetsService.saveWorkoutData(selectedSheet, selectedWeek, currentExercises);
     
     if (success) {
       toast({
         title: "Edzés mentve!",
-        description: "Az adatok sikeresen feltöltve a Google Sheets-be.",
+        description: `${selectedSheet} - ${selectedWeek}. hét sikeresen mentve.`,
       });
     } else {
       toast({
@@ -113,107 +109,152 @@ const WorkoutLogger = () => {
     }
   };
 
+  const completedExercises = currentExercises.filter(e => e.completed).length;
+  const totalExercises = currentExercises.length;
+
   return (
     <div className="space-y-6">
       <Card className="bg-gray-900 border-gray-700">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
-            <Plus className="w-5 h-5" />
-            Új gyakorlat hozzáadása
-          </CardTitle>
+          <CardTitle className="text-white">Edzés kiválasztása</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <Input
-              placeholder="Gyakorlat neve"
-              value={newExerciseName}
-              onChange={(e) => setNewExerciseName(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && addExercise()}
-              className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
-              list="available-exercises"
-            />
-            <datalist id="available-exercises">
-              {availableExercises.map((exercise, index) => (
-                <option key={index} value={exercise} />
-              ))}
-            </datalist>
-            <Button onClick={addExercise} className="bg-yellow-400 hover:bg-yellow-500 text-black">
-              <Plus className="w-4 h-4" />
-            </Button>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label className="text-gray-300">Edzés típusa</Label>
+              <Select value={selectedSheet} onValueChange={setSelectedSheet}>
+                <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                  <SelectValue placeholder="Válassz edzést" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600">
+                  {workoutSheets.map((sheet) => (
+                    <SelectItem key={sheet.name} value={sheet.name} className="text-white">
+                      {sheet.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-gray-300">Hét száma</Label>
+              <Select value={selectedWeek.toString()} onValueChange={(value) => setSelectedWeek(parseInt(value))}>
+                <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((week) => (
+                    <SelectItem key={week} value={week.toString()} className="text-white">
+                      {week}. hét
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+          
+          {totalExercises > 0 && (
+            <div className="flex items-center gap-4">
+              <Badge variant="outline" className="text-yellow-400 border-yellow-400">
+                {completedExercises}/{totalExercises} gyakorlat kész
+              </Badge>
+              <div className="flex-1 bg-gray-700 rounded-full h-2">
+                <div 
+                  className="bg-yellow-400 h-2 rounded-full transition-all duration-300" 
+                  style={{width: `${totalExercises > 0 ? (completedExercises / totalExercises) * 100 : 0}%`}}
+                />
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {exercises.map((exercise) => (
-        <Card key={exercise.id} className="bg-gray-900 border-gray-700">
+      {currentExercises.map((exercise, exerciseIndex) => (
+        <Card key={exerciseIndex} className={`border-2 ${exercise.completed ? 'border-green-500 bg-green-900/20' : 'border-gray-700 bg-gray-900'}`}>
           <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-white">{exercise.name}</CardTitle>
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <CardTitle className="text-white">{exercise.name}</CardTitle>
+                  {exercise.videoUrl && (
+                    <Button variant="outline" size="sm" className="text-yellow-400 border-yellow-400 hover:bg-yellow-400 hover:text-black">
+                      <PlayCircle className="w-4 h-4 mr-1" />
+                      Videó
+                    </Button>
+                  )}
+                </div>
+                <div className="flex gap-4 text-sm text-gray-400">
+                  <span>Munka sorozatok: {exercise.workSets}</span>
+                  <span>Ismétlések: {exercise.repRange}</span>
+                </div>
+              </div>
               <Button
-                variant="outline"
+                variant={exercise.completed ? "default" : "outline"}
                 size="sm"
-                onClick={() => removeExercise(exercise.id)}
-                className="text-red-400 hover:text-red-300 border-gray-600 hover:bg-red-900/20"
+                onClick={() => markExerciseComplete(exerciseIndex)}
+                className={exercise.completed ? "bg-green-600 hover:bg-green-700" : "border-gray-600 hover:bg-gray-800"}
               >
-                <Trash2 className="w-4 h-4" />
+                {exercise.completed ? <CheckCircle className="w-4 h-4" /> : <X className="w-4 h-4" />}
               </Button>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {exercise.sets.map((set, index) => (
-              <div key={index} className="flex gap-2 items-center">
-                <Label className="w-16 text-gray-300">Sorozat {index + 1}</Label>
+            {exercise.sets.map((set, setIndex) => (
+              <div key={setIndex} className="flex gap-2 items-center">
+                <Label className="w-20 text-gray-300">{setIndex + 1}. sorozat</Label>
                 <div className="flex-1 grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-xs text-gray-400">Ismétlés</Label>
-                    <Input
-                      type="number"
-                      value={set.reps || ''}
-                      onChange={(e) => updateSet(exercise.id, index, 'reps', parseInt(e.target.value) || 0)}
-                      placeholder="0"
-                      className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
-                    />
-                  </div>
                   <div>
                     <Label className="text-xs text-gray-400">Súly (kg)</Label>
                     <Input
                       type="number"
                       value={set.weight || ''}
-                      onChange={(e) => updateSet(exercise.id, index, 'weight', parseFloat(e.target.value) || 0)}
+                      onChange={(e) => updateExerciseSet(exerciseIndex, setIndex, 'weight', parseFloat(e.target.value) || 0)}
                       placeholder="0"
                       step="0.5"
                       className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
                     />
                   </div>
+                  <div>
+                    <Label className="text-xs text-gray-400">Ismétlés</Label>
+                    <Input
+                      type="number"
+                      value={set.reps || ''}
+                      onChange={(e) => updateExerciseSet(exerciseIndex, setIndex, 'reps', parseInt(e.target.value) || 0)}
+                      placeholder="0"
+                      className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
+                    />
+                  </div>
                 </div>
-                {exercise.sets.length > 1 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeSet(exercise.id, index)}
-                    className="text-red-400 border-gray-600 hover:bg-red-900/20"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => removeSetFromExercise(exerciseIndex, setIndex)}
+                  className="text-red-400 border-gray-600 hover:bg-red-900/20"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
               </div>
             ))}
-            <Button
-              variant="outline"
-              onClick={() => addSet(exercise.id)}
-              className="w-full border-gray-600 text-gray-300 hover:bg-gray-800"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Újabb sorozat
-            </Button>
+            
+            {exercise.sets.length < 5 && (
+              <Button
+                variant="outline"
+                onClick={() => addSetToExercise(exerciseIndex)}
+                className="w-full border-gray-600 text-gray-300 hover:bg-gray-800"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Újabb sorozat
+              </Button>
+            )}
           </CardContent>
         </Card>
       ))}
 
-      <Button onClick={saveWorkout} className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-medium">
-        <Save className="w-4 h-4 mr-2" />
-        Edzés mentése
-      </Button>
+      {currentExercises.length > 0 && (
+        <Button onClick={saveWorkout} className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-medium">
+          <Save className="w-4 h-4 mr-2" />
+          Edzés mentése
+        </Button>
+      )}
     </div>
   );
 };

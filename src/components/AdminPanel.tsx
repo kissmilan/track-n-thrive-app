@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -89,24 +88,24 @@ const AdminPanel = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+    <div className="min-h-screen bg-black">
       <div className="container mx-auto px-4 py-6">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Admin Dashboard 👨‍💼</h1>
-          <p className="text-gray-600">Kövesd a klienseid haladását és kezeld az adatokat</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Admin Dashboard 👨‍💼</h1>
+          <p className="text-gray-400">Kövesd a klienseid haladását és kezeld az adatokat</p>
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-white shadow-sm">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-3 bg-gray-900 border border-gray-700">
+            <TabsTrigger value="overview" className="flex items-center gap-2 data-[state=active]:bg-yellow-400 data-[state=active]:text-black">
               <TrendingUp className="w-4 h-4" />
               Áttekintés
             </TabsTrigger>
-            <TabsTrigger value="clients" className="flex items-center gap-2">
+            <TabsTrigger value="clients" className="flex items-center gap-2 data-[state=active]:bg-yellow-400 data-[state=active]:text-black">
               <Users className="w-4 h-4" />
               Kliensek
             </TabsTrigger>
-            <TabsTrigger value="add-client" className="flex items-center gap-2">
+            <TabsTrigger value="add-client" className="flex items-center gap-2 data-[state=active]:bg-yellow-400 data-[state=active]:text-black">
               <UserPlus className="w-4 h-4" />
               Új kliens
             </TabsTrigger>
@@ -114,7 +113,7 @@ const AdminPanel = () => {
 
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+              <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-gray-700">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Users className="w-5 h-5" />
@@ -126,7 +125,7 @@ const AdminPanel = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+              <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-gray-700">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Activity className="w-5 h-5" />
@@ -140,7 +139,7 @@ const AdminPanel = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+              <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-gray-700">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <CheckCircle className="w-5 h-5" />
@@ -154,7 +153,7 @@ const AdminPanel = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
+              <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-gray-700">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Calendar className="w-5 h-5" />
@@ -168,18 +167,18 @@ const AdminPanel = () => {
               </Card>
             </div>
 
-            <Card>
+            <Card className="bg-gray-900 border-gray-700">
               <CardHeader>
-                <CardTitle>Mai aktivitás</CardTitle>
-                <CardDescription>Kliensek mai teljesítménye</CardDescription>
+                <CardTitle className="text-white">Mai aktivitás</CardTitle>
+                <CardDescription className="text-gray-400">Kliensek mai teljesítménye</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {clients.map((client) => (
-                    <div key={client.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div key={client.id} className="flex items-center justify-between p-4 border border-gray-700 rounded-lg bg-gray-800">
                       <div>
-                        <h3 className="font-semibold">{client.name}</h3>
-                        <p className="text-sm text-gray-600">Utolsó aktivitás: {client.lastActivity}</p>
+                        <h3 className="font-semibold text-white">{client.name}</h3>
+                        <p className="text-sm text-gray-400">Utolsó aktivitás: {client.lastActivity}</p>
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
@@ -220,12 +219,12 @@ const AdminPanel = () => {
           <TabsContent value="clients" className="space-y-6">
             <div className="grid gap-6">
               {clients.map((client) => (
-                <Card key={client.id}>
+                <Card key={client.id} className="bg-gray-900 border-gray-700">
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
-                        <CardTitle>{client.name}</CardTitle>
-                        <CardDescription>{client.email}</CardDescription>
+                        <CardTitle className="text-white">{client.name}</CardTitle>
+                        <CardDescription className="text-gray-400">{client.email}</CardDescription>
                       </div>
                       <Badge variant="outline" className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
@@ -255,11 +254,11 @@ const AdminPanel = () => {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex items-center gap-1">
+                      <Button variant="outline" size="sm" className="flex items-center gap-1 border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black">
                         <ExternalLink className="w-3 h-3" />
                         Google Sheets
                       </Button>
-                      <Button variant="outline" size="sm" className="flex items-center gap-1">
+                      <Button variant="outline" size="sm" className="flex items-center gap-1 border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black">
                         <ExternalLink className="w-3 h-3" />
                         Google Docs
                       </Button>
@@ -271,57 +270,61 @@ const AdminPanel = () => {
           </TabsContent>
 
           <TabsContent value="add-client" className="space-y-6">
-            <Card>
+            <Card className="bg-gray-900 border-gray-700">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-white">
                   <UserPlus className="w-5 h-5" />
                   Új kliens hozzáadása
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-gray-400">
                   Add meg az új kliens adatait és a Google Sheets/Docs linkeket
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="clientName">Név *</Label>
+                    <Label htmlFor="clientName" className="text-gray-300">Név *</Label>
                     <Input
                       id="clientName"
                       value={newClient.name}
                       onChange={(e) => setNewClient({...newClient, name: e.target.value})}
                       placeholder="Nagy János"
+                      className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="clientEmail">Email cím *</Label>
+                    <Label htmlFor="clientEmail" className="text-gray-300">Email cím *</Label>
                     <Input
                       id="clientEmail"
                       type="email"
                       value={newClient.email}
                       onChange={(e) => setNewClient({...newClient, email: e.target.value})}
                       placeholder="nagy.janos@email.com"
+                      className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
                     />
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="sheetsUrl">Google Sheets URL</Label>
+                  <Label htmlFor="sheetsUrl" className="text-gray-300">Google Sheets URL</Label>
                   <Input
                     id="sheetsUrl"
                     value={newClient.sheetsUrl}
                     onChange={(e) => setNewClient({...newClient, sheetsUrl: e.target.value})}
                     placeholder="https://docs.google.com/spreadsheets/d/..."
+                    className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="docsUrl">Google Docs URL</Label>
+                  <Label htmlFor="docsUrl" className="text-gray-300">Google Docs URL</Label>
                   <Input
                     id="docsUrl"
                     value={newClient.docsUrl}
                     onChange={(e) => setNewClient({...newClient, docsUrl: e.target.value})}
                     placeholder="https://docs.google.com/document/d/..."
+                    className="bg-gray-800 border-gray-600 text-white placeholder-gray-400"
                   />
                 </div>
-                <Button onClick={addClient} className="w-full">
+                <Button onClick={addClient} className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-medium">
                   <UserPlus className="w-4 h-4 mr-2" />
                   Kliens hozzáadása
                 </Button>

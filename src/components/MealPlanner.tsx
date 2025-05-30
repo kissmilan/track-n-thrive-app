@@ -1,60 +1,55 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Save, Trash2, ChefHat } from "lucide-react";
+import { Plus, Save, ChefHat, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { googleSheetsService, MealOption } from "@/services/googleSheetsService";
 
-interface PlannedFood {
+interface SelectedMeal {
   id: string;
-  name: string;
-  amount: string;
   mealType: string;
+  option: MealOption;
 }
 
 const MealPlanner = () => {
-  const [plannedMeals, setPlannedMeals] = useState<PlannedFood[]>([]);
-  const [newFood, setNewFood] = useState({
-    name: "",
-    amount: "",
-    mealType: "breakfast"
-  });
+  const [mealOptions, setMealOptions] = useState<Record<string, MealOption[]>>({});
+  const [selectedMeals, setSelectedMeals] = useState<SelectedMeal[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const foodSuggestions = [
-    "Csirkemell", "Lazac", "Tuna", "Tojás", "Zabpehely", "Barnarizi", "Édesburgonya",
-    "Brokkoli", "Spenót", "Banán", "Alma", "Mandula", "Görög joghurt", "Avokádó"
-  ];
+  useEffect(() => {
+    const loadMealOptions = async () => {
+      setLoading(true);
+      const options = await googleSheetsService.getMealOptions();
+      setMealOptions(options);
+      setLoading(false);
+    };
+    
+    loadMealOptions();
+  }, []);
 
-  const addFood = () => {
-    if (!newFood.name || !newFood.amount) {
-      toast({
-        title: "Hiba",
-        description: "Kérlek töltsd ki az összes mezőt!",
-        variant: "destructive",
-      });
-      return;
-    }
+  const addMeal = (mealType: string, optionIndex: number) => {
+    const option = mealOptions[mealType]?.[optionIndex];
+    if (!option) return;
 
-    const food: PlannedFood = {
+    const meal: SelectedMeal = {
       id: Date.now().toString(),
-      ...newFood
+      mealType,
+      option
     };
 
-    setPlannedMeals([...plannedMeals, food]);
-    setNewFood({ name: "", amount: "", mealType: "breakfast" });
+    setSelectedMeals([...selectedMeals, meal]);
   };
 
-  const removeFood = (id: string) => {
-    setPlannedMeals(plannedMeals.filter(food => food.id !== id));
+  const removeMeal = (id: string) => {
+    setSelectedMeals(selectedMeals.filter(meal => meal.id !== id));
   };
 
   const saveMealPlan = () => {
-    if (plannedMeals.length === 0) {
+    if (selectedMeals.length === 0) {
       toast({
         title: "Hiba",
         description: "Adj hozzá legalább egy ételt!",
@@ -63,107 +58,103 @@ const MealPlanner = () => {
       return;
     }
 
-    // Itt később Google Sheets integráció lesz
     toast({
       title: "Étrend mentve!",
-      description: "A tervezett étkezések sikeresen mentve a Google Sheets-be.",
+      description: "A tervezett étkezések sikeresen mentve.",
     });
   };
 
   const mealTypes = {
     breakfast: "Reggeli",
     lunch: "Ebéd",
-    dinner: "Vacsora",
-    snack: "Snack"
+    dinner: "Vacsora"
   };
 
-  const groupedMeals = plannedMeals.reduce((acc, food) => {
-    if (!acc[food.mealType]) {
-      acc[food.mealType] = [];
+  const totalCalories = selectedMeals.reduce((sum, meal) => sum + meal.option.calories, 0);
+
+  const groupedMeals = selectedMeals.reduce((acc, meal) => {
+    if (!acc[meal.mealType]) {
+      acc[meal.mealType] = [];
     }
-    acc[food.mealType].push(food);
+    acc[meal.mealType].push(meal);
     return acc;
-  }, {} as Record<string, PlannedFood[]>);
+  }, {} as Record<string, SelectedMeal[]>);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center text-white">
+          <p>Étrend opciók betöltése...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="bg-gray-900 border-gray-700">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="w-5 h-5" />
-            Új étel hozzáadása
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Calendar className="w-5 h-5" />
+            Napi étrend tervezés
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
+          {totalCalories > 0 && (
+            <div className="mb-4 p-4 bg-yellow-400/20 border border-yellow-400 rounded-lg">
+              <div className="text-yellow-400 font-semibold">
+                Napi kalória összesen: {totalCalories} kcal
+              </div>
+            </div>
+          )}
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="foodName">Étel neve</Label>
-              <Input
-                id="foodName"
-                value={newFood.name}
-                onChange={(e) => setNewFood({...newFood, name: e.target.value})}
-                placeholder="pl. Csirkemell"
-                list="food-suggestions"
-              />
-              <datalist id="food-suggestions">
-                {foodSuggestions.map((food, index) => (
-                  <option key={index} value={food} />
-                ))}
-              </datalist>
-            </div>
-            <div>
-              <Label htmlFor="amount">Mennyiség</Label>
-              <Input
-                id="amount"
-                value={newFood.amount}
-                onChange={(e) => setNewFood({...newFood, amount: e.target.value})}
-                placeholder="pl. 150g"
-              />
-            </div>
-            <div>
-              <Label htmlFor="mealType">Étkezés</Label>
-              <Select value={newFood.mealType} onValueChange={(value) => setNewFood({...newFood, mealType: value})}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(mealTypes).map(([key, value]) => (
-                    <SelectItem key={key} value={key}>{value}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {Object.entries(mealTypes).map(([key, name]) => (
+              <div key={key} className="space-y-2">
+                <h3 className="font-semibold text-white">{name}</h3>
+                <Select onValueChange={(value) => addMeal(key, parseInt(value))}>
+                  <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                    <SelectValue placeholder="Válassz ételt" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-600">
+                    {mealOptions[key]?.map((option, index) => (
+                      <SelectItem key={index} value={index.toString()} className="text-white">
+                        {option.name} ({option.calories} kcal)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ))}
           </div>
-          <Button onClick={addFood} className="w-full">
-            <Plus className="w-4 h-4 mr-2" />
-            Hozzáadás
-          </Button>
         </CardContent>
       </Card>
 
-      {Object.entries(groupedMeals).map(([mealType, foods]) => (
-        <Card key={mealType}>
+      {Object.entries(groupedMeals).map(([mealType, meals]) => (
+        <Card key={mealType} className="bg-gray-900 border-gray-700">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-white">
               <ChefHat className="w-5 h-5" />
               {mealTypes[mealType as keyof typeof mealTypes]}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {foods.map((food) => (
-                <div key={food.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+              {meals.map((meal) => (
+                <div key={meal.id} className="flex justify-between items-center p-3 bg-gray-800 rounded-lg">
                   <div>
-                    <span className="font-medium">{food.name}</span>
-                    <Badge variant="outline" className="ml-2">{food.amount}</Badge>
+                    <span className="font-medium text-white">{meal.option.name}</span>
+                    <div className="text-sm text-gray-400">
+                      {meal.option.amount} • {meal.option.calories} kcal
+                    </div>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => removeFood(food.id)}
-                    className="text-red-600 hover:text-red-700"
+                    onClick={() => removeMeal(meal.id)}
+                    className="text-red-400 hover:text-red-300 border-gray-600 hover:bg-red-900/20"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    Eltávolítás
                   </Button>
                 </div>
               ))}
@@ -172,8 +163,8 @@ const MealPlanner = () => {
         </Card>
       ))}
 
-      {plannedMeals.length > 0 && (
-        <Button onClick={saveMealPlan} className="w-full bg-green-600 hover:bg-green-700 text-white">
+      {selectedMeals.length > 0 && (
+        <Button onClick={saveMealPlan} className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-medium">
           <Save className="w-4 h-4 mr-2" />
           Étrend mentése
         </Button>

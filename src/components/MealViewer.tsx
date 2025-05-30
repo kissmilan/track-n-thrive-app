@@ -1,54 +1,64 @@
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Clock, ExternalLink, Apple, Utensils } from "lucide-react";
+import { ExternalLink, Apple, Utensils, FileText } from "lucide-react";
+import { googleSheetsService, DailyMeals } from "@/services/googleSheetsService";
 
 const MealViewer = () => {
-  // Példa adatok - később Google Sheets-ből jönnek
-  const todayMeals = {
-    breakfast: {
-      time: "07:00",
-      foods: [
-        { name: "Zabpehely", amount: "50g", calories: 185 },
-        { name: "Banán", amount: "1 db", calories: 89 },
-        { name: "Mandula", amount: "20g", calories: 116 }
-      ],
-      totalCalories: 390
-    },
-    lunch: {
-      time: "12:30",
-      foods: [
-        { name: "Csirkemell", amount: "150g", calories: 231 },
-        { name: "Barnarizi", amount: "80g", calories: 278 },
-        { name: "Brokkoli", amount: "100g", calories: 34 }
-      ],
-      totalCalories: 543
-    },
-    dinner: {
-      time: "18:00",
-      foods: [
-        { name: "Lazac", amount: "120g", calories: 248 },
-        { name: "Édesburgonya", amount: "100g", calories: 86 },
-        { name: "Zöld saláta", amount: "50g", calories: 10 }
-      ],
-      totalCalories: 344
-    }
-  };
+  const [todayMeals, setTodayMeals] = useState<DailyMeals | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const totalDailyCalories = Object.values(todayMeals).reduce((sum, meal) => sum + meal.totalCalories, 0);
+  useEffect(() => {
+    const loadTodaysMeals = async () => {
+      setLoading(true);
+      const meals = await googleSheetsService.getTodaysMeals();
+      setTodayMeals(meals);
+      setLoading(false);
+    };
+    
+    loadTodaysMeals();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center text-white">
+          <p>Étkezések betöltése...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!todayMeals) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center text-white">
+          <p>Nem található mai étrend</p>
+        </div>
+      </div>
+    );
+  }
+
+  const mealTypes = [
+    { key: 'breakfast', name: 'Reggeli', meals: todayMeals.breakfast },
+    { key: 'lunch', name: 'Ebéd', meals: todayMeals.lunch },
+    { key: 'dinner', name: 'Vacsora', meals: todayMeals.dinner },
+    ...(todayMeals.snack ? [{ key: 'snack', name: 'Snack', meals: todayMeals.snack }] : [])
+  ];
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Mai étkezések</h2>
-        <Button variant="outline" className="flex items-center gap-2">
-          <ExternalLink className="w-4 h-4" />
-          Teljes étrend (Google Docs)
+        <h2 className="text-2xl font-bold text-white">Mai étkezések</h2>
+        <Button variant="outline" className="flex items-center gap-2 border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black">
+          <FileText className="w-4 h-4" />
+          Receptek (Google Docs)
         </Button>
       </div>
 
-      <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+      <Card className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-black">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Apple className="w-5 h-5" />
@@ -56,53 +66,47 @@ const MealViewer = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold">{totalDailyCalories} kcal</div>
-          <p className="text-green-100">2,200 kcal célból</p>
-          <div className="w-full bg-green-300 rounded-full h-2 mt-2">
+          <div className="text-3xl font-bold">{todayMeals.totalCalories} kcal</div>
+          <p className="text-black/70">2,200 kcal célból</p>
+          <div className="w-full bg-black/20 rounded-full h-2 mt-2">
             <div 
-              className="bg-white h-2 rounded-full transition-all duration-300" 
-              style={{width: `${Math.min((totalDailyCalories / 2200) * 100, 100)}%`}}
-            ></div>
+              className="bg-black h-2 rounded-full transition-all duration-300" 
+              style={{width: `${Math.min((todayMeals.totalCalories / 2200) * 100, 100)}%`}}
+            />
           </div>
         </CardContent>
       </Card>
 
       <div className="grid gap-4">
-        {Object.entries(todayMeals).map(([mealType, meal]) => {
-          const mealNames = {
-            breakfast: "Reggeli",
-            lunch: "Ebéd", 
-            dinner: "Vacsora"
-          };
+        {mealTypes.map((mealType) => {
+          if (!mealType.meals || mealType.meals.length === 0) return null;
+          
+          const totalCalories = mealType.meals.reduce((sum, meal) => sum + meal.calories, 0);
           
           return (
-            <Card key={mealType}>
+            <Card key={mealType.key} className="bg-gray-900 border-gray-700">
               <CardHeader>
                 <div className="flex justify-between items-center">
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-white">
                     <Utensils className="w-5 h-5" />
-                    {mealNames[mealType as keyof typeof mealNames]}
+                    {mealType.name}
                   </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {meal.time}
-                    </Badge>
-                    <Badge className="bg-orange-500">
-                      {meal.totalCalories} kcal
-                    </Badge>
-                  </div>
+                  <Badge className="bg-yellow-400 text-black">
+                    {totalCalories} kcal
+                  </Badge>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {meal.foods.map((food, index) => (
-                    <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                  {mealType.meals.map((meal, index) => (
+                    <div key={index} className="flex justify-between items-center p-3 bg-gray-800 rounded-lg">
                       <div>
-                        <span className="font-medium">{food.name}</span>
-                        <span className="text-gray-600 ml-2">({food.amount})</span>
+                        <span className="font-medium text-white">{meal.name}</span>
+                        <span className="text-gray-400 ml-2">({meal.amount})</span>
                       </div>
-                      <Badge variant="secondary">{food.calories} kcal</Badge>
+                      <Badge variant="secondary" className="bg-gray-700 text-gray-300">
+                        {meal.calories} kcal
+                      </Badge>
                     </div>
                   ))}
                 </div>

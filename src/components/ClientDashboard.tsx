@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,7 +17,7 @@ import WorkoutLogger from "./WorkoutLogger";
 import WeightTracker from "./WeightTracker";
 import MealPlanner from "./MealPlanner";
 import MealViewer from "./MealViewer";
-import SupplementInfo from "./SupplementInfo";
+import SupplementTracker from "./SupplementTracker";
 
 const ClientDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -186,7 +185,7 @@ const ClientDashboard = () => {
           </TabsContent>
 
           <TabsContent value="supplements">
-            <SupplementInfo />
+            <SupplementTracker />
           </TabsContent>
         </Tabs>
       </div>
