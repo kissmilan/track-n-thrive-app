@@ -33,12 +33,13 @@ export class GoogleSheetsService {
 
   async getWorkoutSheets(): Promise<WorkoutSheet[]> {
     if (!this.accessToken || !this.clientSheetId) {
-      console.log('No access token or sheet ID available');
+      console.log('No access token or sheet ID available, returning mock data');
       return getMockWorkoutSheets();
     }
 
     try {
       console.log('Fetching workout sheets from Google Sheets...');
+      // Ha van access token, itt lehetne valódi API hívás
       return getMockWorkoutSheets();
     } catch (error) {
       console.error('Error fetching workout sheets:', error);
@@ -47,13 +48,29 @@ export class GoogleSheetsService {
   }
 
   async saveWorkoutData(sheetName: string, weekNumber: number, exercises: WorkoutExercise[]): Promise<boolean> {
-    if (!this.accessToken || !this.clientSheetId) {
-      console.log('No access token or sheet ID available');
+    console.log(`Mentés kezdeményezve: ${sheetName}, hét ${weekNumber}`, exercises);
+    
+    if (!this.accessToken) {
+      console.error('Nincs access token az edzés mentéséhez');
       return false;
     }
 
     try {
-      console.log(`Saving workout data to ${sheetName}, week ${weekNumber}:`, exercises);
+      // Ideiglenesen localStorage-ban tároljuk
+      const workoutData = {
+        sheetName,
+        weekNumber,
+        exercises,
+        timestamp: new Date().toISOString(),
+        user: JSON.parse(localStorage.getItem('user_data') || '{}')
+      };
+      
+      // Mentjük localStorage-ba
+      const existingWorkouts = JSON.parse(localStorage.getItem('saved_workouts') || '[]');
+      existingWorkouts.push(workoutData);
+      localStorage.setItem('saved_workouts', JSON.stringify(existingWorkouts));
+      
+      console.log('Edzés sikeresen mentve localStorage-ba:', workoutData);
       return true;
     } catch (error) {
       console.error('Error saving workout data:', error);
@@ -63,7 +80,7 @@ export class GoogleSheetsService {
 
   async getMealOptions(): Promise<Record<string, MealOption[]>> {
     if (!this.accessToken || !this.clientSheetId) {
-      console.log('No access token or sheet ID available');
+      console.log('No access token or sheet ID available for meals');
       return getMockMealOptions();
     }
 
@@ -78,7 +95,7 @@ export class GoogleSheetsService {
 
   async getTodaysMeals(): Promise<DailyMeals> {
     if (!this.accessToken || !this.clientSheetId) {
-      console.log('No access token or sheet ID available');
+      console.log('No access token or sheet ID available for today\'s meals');
       return getMockDailyMeals();
     }
 
@@ -97,7 +114,7 @@ export class GoogleSheetsService {
 
   async getWeightEntries(): Promise<WeightEntry[]> {
     if (!this.accessToken || !this.clientSheetId) {
-      console.log('No access token or sheet ID available');
+      console.log('No access token or sheet ID available for weight entries');
       return getMockWeightEntries();
     }
 
@@ -111,15 +128,21 @@ export class GoogleSheetsService {
   }
 
   async saveWeightEntry(entry: Omit<WeightEntry, 'date'>): Promise<boolean> {
-    if (!this.accessToken || !this.clientSheetId) {
-      console.log('No access token or sheet ID available');
+    if (!this.accessToken) {
+      console.error('Nincs access token a testsúly mentéséhez');
       return false;
     }
 
     try {
       const today = new Date().toLocaleDateString('hu-HU');
       const fullEntry = { ...entry, date: today };
-      console.log('Saving weight entry to Google Sheets:', fullEntry);
+      
+      // Mentjük localStorage-ba
+      const existingEntries = JSON.parse(localStorage.getItem('saved_weight_entries') || '[]');
+      existingEntries.push(fullEntry);
+      localStorage.setItem('saved_weight_entries', JSON.stringify(existingEntries));
+      
+      console.log('Testsúly bejegyzés sikeresen mentve:', fullEntry);
       return true;
     } catch (error) {
       console.error('Error saving weight entry:', error);
@@ -129,7 +152,7 @@ export class GoogleSheetsService {
 
   async getSupplements(): Promise<Supplement[]> {
     if (!this.accessToken || !this.clientSheetId) {
-      console.log('No access token or sheet ID available');
+      console.log('No access token or sheet ID available for supplements');
       return getMockSupplements();
     }
 
@@ -139,6 +162,26 @@ export class GoogleSheetsService {
     } catch (error) {
       console.error('Error fetching supplements:', error);
       return getMockSupplements();
+    }
+  }
+
+  // Új funkció: mentett edzések lekérése
+  getSavedWorkouts() {
+    try {
+      return JSON.parse(localStorage.getItem('saved_workouts') || '[]');
+    } catch (error) {
+      console.error('Error getting saved workouts:', error);
+      return [];
+    }
+  }
+
+  // Új funkció: mentett testsúly bejegyzések lekérése  
+  getSavedWeightEntries() {
+    try {
+      return JSON.parse(localStorage.getItem('saved_weight_entries') || '[]');
+    } catch (error) {
+      console.error('Error getting saved weight entries:', error);
+      return [];
     }
   }
 }

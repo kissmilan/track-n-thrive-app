@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +12,7 @@ const Index = () => {
   const [userType, setUserType] = useState<"client" | "admin" | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -21,8 +21,12 @@ const Index = () => {
       setIsAuthenticated(true);
       // Itt állíthatnád be a userType-ot a localStorage alapján is
       const savedUserType = localStorage.getItem('user_type') as "client" | "admin" | null;
+      const savedUser = localStorage.getItem('user_data');
       if (savedUserType) {
         setUserType(savedUserType);
+      }
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
       }
     }
   }, []);
@@ -37,15 +41,17 @@ const Index = () => {
         // Állítsuk be a tokent a Google Sheets szolgáltatásban
         googleSheetsService.setAccessToken(result.accessToken);
         
-        // Mentsük el a felhasználó típusát
+        // Mentsük el a felhasználó típusát és adatait
         localStorage.setItem('user_type', type);
+        localStorage.setItem('user_data', JSON.stringify(result.user));
         
         setUserType(type);
         setIsAuthenticated(true);
+        setUser(result.user);
         
         toast({
           title: "Sikeres bejelentkezés",
-          description: `Üdvözölünk a FitTracker Pro-ban!`,
+          description: `Üdvözölünk a FitTracker Pro-ban, ${result.user?.user?.name || 'Felhasználó'}!`,
         });
       }
     } catch (error) {
@@ -65,7 +71,9 @@ const Index = () => {
       await googleAuthService.signOut();
       setIsAuthenticated(false);
       setUserType(null);
+      setUser(null);
       localStorage.removeItem('user_type');
+      localStorage.removeItem('user_data');
       
       toast({
         title: "Sikeres kijelentkezés",
@@ -73,6 +81,11 @@ const Index = () => {
       });
     } catch (error) {
       console.error('Kijelentkezési hiba:', error);
+      toast({
+        title: "Kijelentkezési hiba",
+        description: "Hiba történt a kijelentkezés során.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -167,7 +180,12 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-black">
-      <div className="absolute top-4 right-4 z-50">
+      <div className="absolute top-4 right-4 z-50 flex items-center gap-4">
+        {user && (
+          <div className="text-white text-sm">
+            Üdv, {user.user?.name || user.name || 'Felhasználó'}!
+          </div>
+        )}
         <Button 
           onClick={handleSignOut}
           variant="outline"
