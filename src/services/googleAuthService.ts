@@ -1,6 +1,36 @@
 
-import { GoogleAuth } from '@capacitor/google-auth';
-import { Capacitor } from '@capacitor/core';
+// Temporary mock implementation until proper Google Auth setup
+interface GoogleAuthResult {
+  authentication?: {
+    accessToken: string;
+  };
+  serverAuthCode?: string;
+  user?: any;
+}
+
+class MockGoogleAuth {
+  static async initialize(config: any) {
+    console.log('Mock Google Auth initialized with config:', config);
+  }
+
+  static async signIn(): Promise<GoogleAuthResult> {
+    // Mock successful sign-in for development
+    return {
+      authentication: {
+        accessToken: 'mock_access_token_' + Date.now()
+      },
+      serverAuthCode: 'mock_server_auth_code',
+      user: {
+        email: 'demo@example.com',
+        name: 'Demo User'
+      }
+    };
+  }
+
+  static async signOut() {
+    console.log('Mock Google Auth sign out');
+  }
+}
 
 export class GoogleAuthService {
   private isInitialized = false;
@@ -8,14 +38,12 @@ export class GoogleAuthService {
   async initialize() {
     if (this.isInitialized) return;
 
-    // Csak webes platformon kell inicializálni
-    if (!Capacitor.isNativePlatform()) {
-      await GoogleAuth.initialize({
-        clientId: 1070518728039-4l0ambas9mhvoom8ssl1lj9hl0tb5irj.apps.googleusercontent.com,
-        scopes: ['profile', 'email', 'https://www.googleapis.com/auth/spreadsheets'],
-        grantOfflineAccess: true
-      });
-    }
+    // Mock initialization for web platform
+    await MockGoogleAuth.initialize({
+      clientId: '1070518728039-4l0ambas9mhvoom8ssl1lj9hl0tb5irj.apps.googleusercontent.com',
+      scopes: ['profile', 'email', 'https://www.googleapis.com/auth/spreadsheets'],
+      grantOfflineAccess: true
+    });
 
     this.isInitialized = true;
   }
@@ -23,7 +51,7 @@ export class GoogleAuthService {
   async signIn() {
     try {
       await this.initialize();
-      const result = await GoogleAuth.signIn();
+      const result = await MockGoogleAuth.signIn();
       
       if (result.authentication?.accessToken) {
         // Tároljuk el a tokent
@@ -49,7 +77,7 @@ export class GoogleAuthService {
 
   async signOut() {
     try {
-      await GoogleAuth.signOut();
+      await MockGoogleAuth.signOut();
       localStorage.removeItem('google_access_token');
       localStorage.removeItem('google_refresh_token');
       localStorage.removeItem('client_sheet_id');
