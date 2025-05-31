@@ -16,22 +16,41 @@ export interface WorkoutExercise {
   weightIncrease: number;
   strengthIncrease: number;
   notes?: string;
+  previousWeekBest?: WorkoutSet;
+  hasImprovement?: boolean;
 }
 
 export interface WorkoutWeek {
   weekNumber: number;
   exercises: WorkoutExercise[];
+  completed?: boolean;
+  totalVolumeIncrease?: number;
+  strengthPercentage?: number;
 }
 
 export interface WorkoutSheet {
-  name: string; // "Felsőtest 1", "Láb", etc.
+  name: string;
   weeks: WorkoutWeek[];
+}
+
+export interface MealIngredient {
+  name: string;
+  amount: string;
+  unit: string;
 }
 
 export interface MealOption {
   name: string;
   amount: string;
   calories: number;
+  ingredients: MealIngredient[];
+}
+
+export interface ShoppingListItem {
+  ingredient: string;
+  totalAmount: number;
+  unit: string;
+  meals: string[];
 }
 
 export interface DailyMeals {
@@ -40,16 +59,17 @@ export interface DailyMeals {
   dinner: MealOption[];
   snack?: MealOption[];
   totalCalories: number;
+  mealCount: number;
 }
 
 export interface WeightEntry {
   date: string;
   weight: number;
-  sleep: number; // 1-10
-  stress: number; // 1-10
-  fatigue: number; // 1-10
-  motivation: number; // 1-10
-  training: number; // 1-10
+  sleep: number;
+  stress: number;
+  fatigue: number;
+  motivation: number;
+  training: number;
   notes?: string;
 }
 
@@ -60,6 +80,13 @@ export interface Supplement {
   timing: string;
   taken: boolean;
   category: 'vitamin' | 'digestive' | 'joint' | 'extract' | 'sleep' | 'pre-workout';
+  purchaseLink?: string;
+}
+
+export interface UserProgress {
+  totalWorkouts: number;
+  weeklyWorkouts: number;
+  hasMinimumWorkouts: boolean;
 }
 
 export class GoogleSheetsService {
@@ -81,7 +108,15 @@ export class GoogleSheetsService {
     localStorage.setItem('google_access_token', token);
   }
 
-  // Get workout sheets (Felsőtest 1, Láb, etc.)
+  async getUserProgress(): Promise<UserProgress> {
+    // Mock implementation - replace with actual API call
+    return {
+      totalWorkouts: 12,
+      weeklyWorkouts: 4,
+      hasMinimumWorkouts: true
+    };
+  }
+
   async getWorkoutSheets(): Promise<WorkoutSheet[]> {
     if (!this.accessToken || !this.clientSheetId) {
       console.log('No access token or sheet ID available');
@@ -97,7 +132,6 @@ export class GoogleSheetsService {
     }
   }
 
-  // Save workout data to specific sheet and week
   async saveWorkoutData(sheetName: string, weekNumber: number, exercises: WorkoutExercise[]): Promise<boolean> {
     if (!this.accessToken || !this.clientSheetId) {
       console.log('No access token or sheet ID available');
@@ -106,12 +140,6 @@ export class GoogleSheetsService {
 
     try {
       console.log(`Saving workout data to ${sheetName}, week ${weekNumber}:`, exercises);
-      // Calculate row numbers: each week starts at row (weekNumber-1)*12 + 2
-      const startRow = (weekNumber - 1) * 12 + 2;
-      
-      // Here would be the actual Google Sheets API call to update specific cells
-      // For each exercise, update columns E-J (sets 1-5) with weight and reps
-      
       return true;
     } catch (error) {
       console.error('Error saving workout data:', error);
@@ -119,7 +147,6 @@ export class GoogleSheetsService {
     }
   }
 
-  // Get meal options for meal planner
   async getMealOptions(): Promise<Record<string, MealOption[]>> {
     if (!this.accessToken || !this.clientSheetId) {
       console.log('No access token or sheet ID available');
@@ -135,7 +162,6 @@ export class GoogleSheetsService {
     }
   }
 
-  // Get today's planned meals
   async getTodaysMeals(): Promise<DailyMeals> {
     if (!this.accessToken || !this.clientSheetId) {
       console.log('No access token or sheet ID available');
@@ -151,7 +177,32 @@ export class GoogleSheetsService {
     }
   }
 
-  // Get weight and wellness tracking data
+  generateShoppingList(selectedMeals: { option: MealOption; quantity: number }[]): ShoppingListItem[] {
+    const ingredientMap = new Map<string, ShoppingListItem>();
+
+    selectedMeals.forEach(({ option, quantity }) => {
+      option.ingredients.forEach(ingredient => {
+        const key = `${ingredient.name}-${ingredient.unit}`;
+        const amount = parseFloat(ingredient.amount) * quantity;
+        
+        if (ingredientMap.has(key)) {
+          const existing = ingredientMap.get(key)!;
+          existing.totalAmount += amount;
+          existing.meals.push(option.name);
+        } else {
+          ingredientMap.set(key, {
+            ingredient: ingredient.name,
+            totalAmount: amount,
+            unit: ingredient.unit,
+            meals: [option.name]
+          });
+        }
+      });
+    });
+
+    return Array.from(ingredientMap.values());
+  }
+
   async getWeightEntries(): Promise<WeightEntry[]> {
     if (!this.accessToken || !this.clientSheetId) {
       console.log('No access token or sheet ID available');
@@ -167,15 +218,16 @@ export class GoogleSheetsService {
     }
   }
 
-  // Save weight and wellness data
-  async saveWeightEntry(entry: WeightEntry): Promise<boolean> {
+  async saveWeightEntry(entry: Omit<WeightEntry, 'date'>): Promise<boolean> {
     if (!this.accessToken || !this.clientSheetId) {
       console.log('No access token or sheet ID available');
       return false;
     }
 
     try {
-      console.log('Saving weight entry to Google Sheets:', entry);
+      const today = new Date().toLocaleDateString('hu-HU');
+      const fullEntry = { ...entry, date: today };
+      console.log('Saving weight entry to Google Sheets:', fullEntry);
       return true;
     } catch (error) {
       console.error('Error saving weight entry:', error);
@@ -183,7 +235,6 @@ export class GoogleSheetsService {
     }
   }
 
-  // Get supplements list
   async getSupplements(): Promise<Supplement[]> {
     if (!this.accessToken || !this.clientSheetId) {
       console.log('No access token or sheet ID available');
@@ -199,72 +250,131 @@ export class GoogleSheetsService {
     }
   }
 
-  // Mock data methods
+  // Mock data methods with enhanced functionality
   private getMockWorkoutSheets(): WorkoutSheet[] {
     return [
       {
         name: "Felsőtest 1",
-        weeks: [
-          {
-            weekNumber: 1,
-            exercises: [
-              {
-                name: "Fekvenyomás 1 kezességgel",
-                workSets: 3,
-                repRange: "6-10",
-                videoUrl: "gyak",
-                sets: [],
-                completed: false,
-                volumeImprovement: 0,
-                weightIncrease: 0,
-                strengthIncrease: 0
-              },
-              {
-                name: "Tárogatás gépen",
-                workSets: 3,
-                repRange: "8-12",
-                videoUrl: "gyak",
-                sets: [],
-                completed: false,
-                volumeImprovement: 0,
-                weightIncrease: 0,
-                strengthIncrease: 0
-              },
-              {
-                name: "Oldalemeles padhoz dőlve",
-                workSets: 4,
-                repRange: "10-15",
-                videoUrl: "gyak",
-                sets: [],
-                completed: false,
-                volumeImprovement: 0,
-                weightIncrease: 0,
-                strengthIncrease: 0
-              }
-            ]
-          }
-        ]
+        weeks: Array.from({ length: 12 }, (_, weekIndex) => ({
+          weekNumber: weekIndex + 1,
+          exercises: [
+            {
+              name: "Fekvenyomás 1 kezességgel",
+              workSets: 3,
+              repRange: "6-10",
+              videoUrl: "https://example.com/video1",
+              sets: [],
+              completed: false,
+              volumeImprovement: 0,
+              weightIncrease: 0,
+              strengthIncrease: 0,
+              previousWeekBest: weekIndex > 0 ? { weight: 80, reps: 8 } : undefined,
+              hasImprovement: false
+            },
+            {
+              name: "Tárogatás gépen",
+              workSets: 3,
+              repRange: "8-12",
+              videoUrl: "https://example.com/video2",
+              sets: [],
+              completed: false,
+              volumeImprovement: 0,
+              weightIncrease: 0,
+              strengthIncrease: 0,
+              previousWeekBest: weekIndex > 0 ? { weight: 60, reps: 10 } : undefined,
+              hasImprovement: false
+            },
+            {
+              name: "Oldalemeles padhoz dőlve",
+              workSets: 4,
+              repRange: "10-15",
+              videoUrl: "https://example.com/video3",
+              sets: [],
+              completed: false,
+              volumeImprovement: 0,
+              weightIncrease: 0,
+              strengthIncrease: 0,
+              previousWeekBest: weekIndex > 0 ? { weight: 15, reps: 12 } : undefined,
+              hasImprovement: false
+            }
+          ]
+        }))
       },
       {
         name: "Láb",
-        weeks: [
-          {
-            weekNumber: 1,
-            exercises: [
-              {
-                name: "Guggolás",
-                workSets: 4,
-                repRange: "8-12",
-                videoUrl: "gyak",
-                sets: [],
-                completed: false,
-                volumeImprovement: 0,
-                weightIncrease: 0,
-                strengthIncrease: 0
-              }
-            ]
-          }
-        ]
+        weeks: Array.from({ length: 12 }, (_, weekIndex) => ({
+          weekNumber: weekIndex + 1,
+          exercises: [
+            {
+              name: "Guggolás",
+              workSets: 4,
+              repRange: "8-12",
+              videoUrl: "https://example.com/video4",
+              sets: [],
+              completed: false,
+              volumeImprovement: 0,
+              weightIncrease: 0,
+              strengthIncrease: 0,
+              previousWeekBest: weekIndex > 0 ? { weight: 100, reps: 10 } : undefined,
+              hasImprovement: false
+            },
+            {
+              name: "Román felhúzás",
+              workSets: 3,
+              repRange: "10-12",
+              videoUrl: "https://example.com/video5",
+              sets: [],
+              completed: false,
+              volumeImprovement: 0,
+              weightIncrease: 0,
+              strengthIncrease: 0,
+              previousWeekBest: weekIndex > 0 ? { weight: 80, reps: 10 } : undefined,
+              hasImprovement: false
+            }
+          ]
+        }))
+      },
+      {
+        name: "Felsőtest 2",
+        weeks: Array.from({ length: 12 }, (_, weekIndex) => ({
+          weekNumber: weekIndex + 1,
+          exercises: [
+            {
+              name: "Húzódzkodás",
+              workSets: 3,
+              repRange: "5-8",
+              videoUrl: "https://example.com/video6",
+              sets: [],
+              completed: false,
+              volumeImprovement: 0,
+              weightIncrease: 0,
+              strengthIncrease: 0,
+              previousWeekBest: weekIndex > 0 ? { weight: 10, reps: 6 } : undefined,
+              hasImprovement: false
+            }
+          ]
+        }))
+      },
+      {
+        name: "Push/Pull",
+        weeks: Array.from({ length: 12 }, (_, weekIndex) => ({
+          weekNumber: weekIndex + 1,
+          exercises: [
+            {
+              name: "Vállnomás",
+              workSets: 4,
+              repRange: "8-10",
+              videoUrl: "https://example.com/video7",
+              sets: [],
+              completed: false,
+              volumeImprovement: 0,
+              weightIncrease: 0,
+              strengthIncrease: 0,
+              previousWeekBest: weekIndex > 0 ? { weight: 40, reps: 8 } : undefined,
+              hasImprovement: false
+            }
+          ]
+        }))
       }
     ];
   }
@@ -272,42 +382,71 @@ export class GoogleSheetsService {
   private getMockMealOptions(): Record<string, MealOption[]> {
     return {
       breakfast: [
-        { name: "Reggeli szendvics", amount: "1 db", calories: 350 },
-        { name: "Joghurt túl", amount: "200g", calories: 150 },
-        { name: "Tojás", amount: "2 db", calories: 140 }
+        { 
+          name: "Reggeli szendvics", 
+          amount: "1 db", 
+          calories: 350,
+          ingredients: [
+            { name: "Teljes kiőrlésű kenyér", amount: "2", unit: "szelet" },
+            { name: "Sonka", amount: "50", unit: "g" },
+            { name: "Sajt", amount: "30", unit: "g" },
+            { name: "Paradicsom", amount: "1", unit: "db" }
+          ]
+        },
+        { 
+          name: "Joghurt müzlivel", 
+          amount: "200g", 
+          calories: 150,
+          ingredients: [
+            { name: "Görög joghurt", amount: "150", unit: "g" },
+            { name: "Müzli", amount: "30", unit: "g" },
+            { name: "Méz", amount: "1", unit: "tk" }
+          ]
+        }
       ],
       lunch: [
-        { name: "Csirkemell sonka", amount: "100g", calories: 165 },
-        { name: "Paradicsomos Marha", amount: "150g", calories: 220 },
-        { name: "Légegyszerűbb", amount: "1 adag", calories: 300 }
+        { 
+          name: "Csirkemell rizzsel", 
+          amount: "300g", 
+          calories: 450,
+          ingredients: [
+            { name: "Csirkemell", amount: "150", unit: "g" },
+            { name: "Basmati rizs", amount: "80", unit: "g" },
+            { name: "Brokkoli", amount: "100", unit: "g" },
+            { name: "Olívaolaj", amount: "1", unit: "ek" }
+          ]
+        }
       ],
       dinner: [
-        { name: "Hamburger", amount: "1 db", calories: 450 },
-        { name: "Pizza", amount: "2 szelet", calories: 500 },
-        { name: "Avocado szendvics", amount: "1 db", calories: 320 }
+        { 
+          name: "Lazac zöldségekkel", 
+          amount: "250g", 
+          calories: 380,
+          ingredients: [
+            { name: "Lazacfilé", amount: "120", unit: "g" },
+            { name: "Édesburgonya", amount: "100", unit: "g" },
+            { name: "Spárga", amount: "80", unit: "g" }
+          ]
+        }
       ]
     };
   }
 
   private getMockDailyMeals(): DailyMeals {
+    const mockOptions = this.getMockMealOptions();
     return {
-      breakfast: [
-        { name: "Csirkemell sonka", amount: "100g", calories: 583 }
-      ],
-      lunch: [
-        { name: "Paradicsomos Marha", amount: "150g", calories: 592 }
-      ],
-      dinner: [
-        { name: "Joghurt túl", amount: "200g", calories: 258 }
-      ],
-      totalCalories: 1433
+      breakfast: [mockOptions.breakfast[0]],
+      lunch: [mockOptions.lunch[0]],
+      dinner: [mockOptions.dinner[0]],
+      totalCalories: 1180,
+      mealCount: 3
     };
   }
 
   private getMockWeightEntries(): WeightEntry[] {
     return [
       {
-        date: "4.28",
+        date: "2024.05.28",
         weight: 91.60,
         sleep: 8,
         stress: 3,
@@ -316,21 +455,12 @@ export class GoogleSheetsService {
         training: 7
       },
       {
-        date: "4.29",
+        date: "2024.05.29",
         weight: 91.40,
         sleep: 7,
         stress: 4,
         fatigue: 5,
         motivation: 7,
-        training: 8
-      },
-      {
-        date: "4.30",
-        weight: 91.20,
-        sleep: 8,
-        stress: 2,
-        fatigue: 3,
-        motivation: 9,
         training: 8
       }
     ];
@@ -343,8 +473,9 @@ export class GoogleSheetsService {
         description: "Esszenciális zsírsav, hormon termelés",
         dosage: "Reggel 2db",
         timing: "Reggel",
-        taken: true,
-        category: "vitamin"
+        taken: false,
+        category: "vitamin",
+        purchaseLink: "https://example.com/omega3"
       },
       {
         name: "C-vitamin",
@@ -352,31 +483,17 @@ export class GoogleSheetsService {
         dosage: "Reggel 2db",
         timing: "Reggel",
         taken: false,
-        category: "vitamin"
+        category: "vitamin",
+        purchaseLink: "https://example.com/vitamin-c"
       },
       {
         name: "Magnézium",
         description: "Nyugtató hatású",
         dosage: "Este 3 db",
         timing: "Este",
-        taken: true,
-        category: "sleep"
-      },
-      {
-        name: "Probiotikum",
-        description: "Mindennapos gyomor egészség",
-        dosage: "Reggel 1db",
-        timing: "Reggel",
-        taken: true,
-        category: "digestive"
-      },
-      {
-        name: "Ashwaganda",
-        description: "Kortizol szint csökkentés és nyugtató hatás",
-        dosage: "Lefekves előtt/ edzés után 1 db",
-        timing: "Este/Edzés után",
-        taken: true,
-        category: "extract"
+        taken: false,
+        category: "sleep",
+        purchaseLink: "https://example.com/magnesium"
       }
     ];
   }

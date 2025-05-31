@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, Apple, Utensils, FileText } from "lucide-react";
+import { ExternalLink, Apple, Utensils, FileText, ChefHat } from "lucide-react";
 import { googleSheetsService, DailyMeals } from "@/services/googleSheetsService";
 
 const MealViewer = () => {
@@ -52,7 +52,11 @@ const MealViewer = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white">Mai étkezések</h2>
-        <Button variant="outline" className="flex items-center gap-2 border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black">
+        <Button 
+          variant="outline" 
+          className="flex items-center gap-2 border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black"
+          onClick={() => window.open('https://docs.google.com/document/d/example', '_blank')}
+        >
           <FileText className="w-4 h-4" />
           Receptek (Google Docs)
         </Button>
@@ -73,6 +77,11 @@ const MealViewer = () => {
               className="bg-black h-2 rounded-full transition-all duration-300" 
               style={{width: `${Math.min((todayMeals.totalCalories / 2200) * 100, 100)}%`}}
             />
+          </div>
+          <div className="mt-3 text-sm">
+            <Badge className="bg-black text-yellow-400">
+              {todayMeals.mealCount} étkezés tervezve
+            </Badge>
           </div>
         </CardContent>
       </Card>
@@ -99,14 +108,32 @@ const MealViewer = () => {
               <CardContent>
                 <div className="space-y-2">
                   {mealType.meals.map((meal, index) => (
-                    <div key={index} className="flex justify-between items-center p-3 bg-gray-800 rounded-lg">
-                      <div>
-                        <span className="font-medium text-white">{meal.name}</span>
-                        <span className="text-gray-400 ml-2">({meal.amount})</span>
+                    <div key={index} className="space-y-2">
+                      <div className="flex justify-between items-center p-3 bg-gray-800 rounded-lg">
+                        <div>
+                          <span className="font-medium text-white">{meal.name}</span>
+                          <span className="text-gray-400 ml-2">({meal.amount})</span>
+                        </div>
+                        <Badge variant="secondary" className="bg-gray-700 text-gray-300">
+                          {meal.calories} kcal
+                        </Badge>
                       </div>
-                      <Badge variant="secondary" className="bg-gray-700 text-gray-300">
-                        {meal.calories} kcal
-                      </Badge>
+                      
+                      {/* Ingredients section */}
+                      <div className="ml-3 p-2 bg-gray-800/50 rounded border-l-2 border-yellow-400">
+                        <div className="flex items-center gap-2 mb-2">
+                          <ChefHat className="w-4 h-4 text-yellow-400" />
+                          <span className="text-sm font-medium text-yellow-400">Összetevők:</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1 text-sm text-gray-300">
+                          {meal.ingredients.map((ingredient, ingIndex) => (
+                            <div key={ingIndex} className="flex justify-between">
+                              <span>{ingredient.name}</span>
+                              <span className="text-gray-400">{ingredient.amount} {ingredient.unit}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>

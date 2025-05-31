@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -18,9 +19,22 @@ import WeightTracker from "./WeightTracker";
 import MealPlanner from "./MealPlanner";
 import MealViewer from "./MealViewer";
 import SupplementTracker from "./SupplementTracker";
+import { googleSheetsService, UserProgress } from "@/services/googleSheetsService";
 
 const ClientDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
+
+  useEffect(() => {
+    const loadUserProgress = async () => {
+      const progress = await googleSheetsService.getUserProgress();
+      setUserProgress(progress);
+    };
+    
+    loadUserProgress();
+  }, []);
+
+  const shouldShowStats = userProgress?.hasMinimumWorkouts ?? false;
 
   return (
     <div className="min-h-screen bg-black">
@@ -59,113 +73,140 @@ const ClientDashboard = () => {
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="bg-gradient-to-r from-yellow-500 to-yellow-400 text-black border-gray-700">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Activity className="w-5 h-5" />
-                    Mai edzés
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">3/5</div>
-                  <p className="text-black/70">gyakorlat elvégezve</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-r from-green-600 to-green-500 text-white border-gray-700">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Scale className="w-5 h-5" />
-                    Testsúly
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">75.2 kg</div>
-                  <p className="text-green-100">-0.3 kg a céltól</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-r from-orange-600 to-orange-500 text-white border-gray-700">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Apple className="w-5 h-5" />
-                    Kalóriák
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">1,847</div>
-                  <p className="text-orange-100">2,200-ból</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-gradient-to-r from-purple-600 to-purple-500 text-white border-gray-700">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Target className="w-5 h-5" />
-                    Heti cél
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">4/6</div>
-                  <p className="text-purple-100">edzés teljesítve</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-gray-900 border-gray-700">
+            {!shouldShowStats ? (
+              <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-white">
-                    <Calendar className="w-5 h-5" />
-                    Heti előrehaladás
-                  </CardTitle>
+                  <CardTitle className="text-2xl">Üdvözlünk az alkalmazásban! 🎯</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <div className="flex justify-between mb-2 text-white">
-                      <span>Edzések</span>
-                      <span>4/6</span>
-                    </div>
-                    <Progress value={67} className="h-2" />
-                  </div>
-                  <div>
-                    <div className="flex justify-between mb-2 text-white">
-                      <span>Étrendkövetés</span>
-                      <span>6/7</span>
-                    </div>
-                    <Progress value={86} className="h-2" />
-                  </div>
-                  <div>
-                    <div className="flex justify-between mb-2 text-white">
-                      <span>Testsúly mérés</span>
-                      <span>7/7</span>
-                    </div>
-                    <Progress value={100} className="h-2" />
+                <CardContent>
+                  <p className="text-lg mb-4">
+                    Kezdd el az edzéseidet, hogy láthasd a részletes statisztikákat és haladásodat!
+                  </p>
+                  <p className="text-blue-100">
+                    A dashboard funkcióit 5 edzés teljesítése után éred el.
+                  </p>
+                  <div className="mt-4">
+                    <Button 
+                      onClick={() => setActiveTab("workout")}
+                      className="bg-white text-blue-600 hover:bg-gray-100"
+                    >
+                      <Activity className="w-4 h-4 mr-2" />
+                      Kezdés az edzéssel
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <Card className="bg-gradient-to-r from-yellow-500 to-yellow-400 text-black border-gray-700">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Activity className="w-5 h-5" />
+                        Mai edzés
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">3/5</div>
+                      <p className="text-black/70">gyakorlat elvégezve</p>
+                    </CardContent>
+                  </Card>
 
-              <Card className="bg-gray-900 border-gray-700">
-                <CardHeader>
-                  <CardTitle className="text-white">Mai teendők</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center gap-3 p-3 bg-green-900/30 border border-green-700 rounded-lg">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="line-through text-gray-400">Reggeli bevitel</span>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 bg-orange-900/30 border border-orange-700 rounded-lg">
-                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                    <span className="text-white">Láb edzés befejezése</span>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 bg-yellow-900/30 border border-yellow-700 rounded-lg">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <span className="text-white">Esti testsúly mérés</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                  <Card className="bg-gradient-to-r from-green-600 to-green-500 text-white border-gray-700">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Scale className="w-5 h-5" />
+                        Testsúly
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">75.2 kg</div>
+                      <p className="text-green-100">-0.3 kg a céltól</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-gradient-to-r from-orange-600 to-orange-500 text-white border-gray-700">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Apple className="w-5 h-5" />
+                        Kalóriák
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">1,847</div>
+                      <p className="text-orange-100">2,200-ból</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-gradient-to-r from-purple-600 to-purple-500 text-white border-gray-700">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Target className="w-5 h-5" />
+                        Heti cél
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{userProgress?.weeklyWorkouts || 0}/6</div>
+                      <p className="text-purple-100">edzés teljesítve</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card className="bg-gray-900 border-gray-700">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-white">
+                        <Calendar className="w-5 h-5" />
+                        Heti előrehaladás
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <div className="flex justify-between mb-2 text-white">
+                          <span>Edzések</span>
+                          <span>{userProgress?.weeklyWorkouts || 0}/6</span>
+                        </div>
+                        <Progress value={((userProgress?.weeklyWorkouts || 0) / 6) * 100} className="h-2" />
+                      </div>
+                      <div>
+                        <div className="flex justify-between mb-2 text-white">
+                          <span>Étrendkövetés</span>
+                          <span>6/7</span>
+                        </div>
+                        <Progress value={86} className="h-2" />
+                      </div>
+                      <div>
+                        <div className="flex justify-between mb-2 text-white">
+                          <span>Testsúly mérés</span>
+                          <span>7/7</span>
+                        </div>
+                        <Progress value={100} className="h-2" />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-gray-900 border-gray-700">
+                    <CardHeader>
+                      <CardTitle className="text-white">Mai teendők</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="flex items-center gap-3 p-3 bg-green-900/30 border border-green-700 rounded-lg">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="line-through text-gray-400">Reggeli bevitel</span>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 bg-orange-900/30 border border-orange-700 rounded-lg">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                        <span className="text-white">Láb edzés befejezése</span>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 bg-yellow-900/30 border border-yellow-700 rounded-lg">
+                        <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                        <span className="text-white">Esti testsúly mérés</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </>
+            )}
           </TabsContent>
 
           <TabsContent value="workout">
