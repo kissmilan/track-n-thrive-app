@@ -1,6 +1,6 @@
 
 import { GoogleAuth } from '@capacitor-community/google-auth';
-import { isPlatform } from '@capacitor/core';
+import { Capacitor } from '@capacitor/core';
 
 export class GoogleAuthService {
   private isInitialized = false;
@@ -9,7 +9,7 @@ export class GoogleAuthService {
     if (this.isInitialized) return;
 
     // Csak webes platformon kell inicializálni
-    if (!isPlatform('capacitor')) {
+    if (!Capacitor.isNativePlatform()) {
       await GoogleAuth.initialize({
         clientId: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
         scopes: ['profile', 'email', 'https://www.googleapis.com/auth/spreadsheets'],
