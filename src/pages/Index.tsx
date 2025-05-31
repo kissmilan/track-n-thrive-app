@@ -1,26 +1,79 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserPlus, Users, Activity, Target, Apple, Settings } from "lucide-react";
 import ClientDashboard from "@/components/ClientDashboard";
 import AdminPanel from "@/components/AdminPanel";
 import { useToast } from "@/hooks/use-toast";
+import { googleAuthService } from "@/services/googleAuthService";
+import { googleSheetsService } from "@/services/googleSheetsService";
 
 const Index = () => {
   const [userType, setUserType] = useState<"client" | "admin" | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleGoogleAuth = (type: "client" | "admin") => {
-    // Placeholder for Google OAuth integration
-    toast({
-      title: "Autentikáció",
-      description: "Google OAuth integráció hamarosan elérhető lesz!",
-    });
-    setUserType(type);
-    setIsAuthenticated(true);
+  useEffect(() => {
+    // Ellenőrizzük, hogy már be van-e jelentkezve a felhasználó
+    if (googleAuthService.isAuthenticated()) {
+      setIsAuthenticated(true);
+      // Itt állíthatnád be a userType-ot a localStorage alapján is
+      const savedUserType = localStorage.getItem('user_type') as "client" | "admin" | null;
+      if (savedUserType) {
+        setUserType(savedUserType);
+      }
+    }
+  }, []);
+
+  const handleGoogleAuth = async (type: "client" | "admin") => {
+    setIsLoading(true);
+    
+    try {
+      const result = await googleAuthService.signIn();
+      
+      if (result.accessToken) {
+        // Állítsuk be a tokent a Google Sheets szolgáltatásban
+        googleSheetsService.setAccessToken(result.accessToken);
+        
+        // Mentsük el a felhasználó típusát
+        localStorage.setItem('user_type', type);
+        
+        setUserType(type);
+        setIsAuthenticated(true);
+        
+        toast({
+          title: "Sikeres bejelentkezés",
+          description: `Üdvözölünk a FitTracker Pro-ban!`,
+        });
+      }
+    } catch (error) {
+      console.error('Bejelentkezési hiba:', error);
+      toast({
+        title: "Bejelentkezési hiba",
+        description: "Nem sikerült bejelentkezni. Kérjük, próbáld újra!",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await googleAuthService.signOut();
+      setIsAuthenticated(false);
+      setUserType(null);
+      localStorage.removeItem('user_type');
+      
+      toast({
+        title: "Sikeres kijelentkezés",
+        description: "Biztonságosan kijelentkeztél.",
+      });
+    } catch (error) {
+      console.error('Kijelentkezési hiba:', error);
+    }
   };
 
   if (!isAuthenticated) {
@@ -51,10 +104,11 @@ const Index = () => {
                 <CardContent>
                   <Button 
                     onClick={() => handleGoogleAuth("client")} 
+                    disabled={isLoading}
                     className="w-full bg-yellow-400 hover:bg-yellow-500 text-black py-3 text-lg font-medium"
                   >
                     <Activity className="w-5 h-5 mr-2" />
-                    Belépés Google-lel
+                    {isLoading ? "Bejelentkezés..." : "Belépés Google-lel"}
                   </Button>
                 </CardContent>
               </Card>
@@ -72,10 +126,11 @@ const Index = () => {
                 <CardContent>
                   <Button 
                     onClick={() => handleGoogleAuth("admin")} 
+                    disabled={isLoading}
                     className="w-full bg-yellow-400 hover:bg-yellow-500 text-black py-3 text-lg font-medium"
                   >
                     <Target className="w-5 h-5 mr-2" />
-                    Admin Belépés
+                    {isLoading ? "Bejelentkezés..." : "Admin Belépés"}
                   </Button>
                 </CardContent>
               </Card>
@@ -112,6 +167,15 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-black">
+      <div className="absolute top-4 right-4 z-50">
+        <Button 
+          onClick={handleSignOut}
+          variant="outline"
+          className="border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-black"
+        >
+          Kijelentkezés
+        </Button>
+      </div>
       {userType === "client" ? <ClientDashboard /> : <AdminPanel />}
     </div>
   );
