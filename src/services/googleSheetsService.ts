@@ -151,12 +151,6 @@ export type {
   WorkoutExercise,
   WorkoutWeek,
   WorkoutSheet,
-  MealIngredient,
-  MealOption,
-  ShoppingListItem,
-  DailyMeals,
-  WeightEntry,
-  Supplement,
   UserProgress
 } from '@/types/workout';
 
