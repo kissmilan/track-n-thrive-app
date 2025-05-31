@@ -9,8 +9,12 @@ const config: CapacitorConfig = {
   server: {
     url: "https://fd86b769-71df-425a-a3b4-a077107181b6.lovableproject.com?forceHideBadge=true",
     cleartext: true
+  },
+  plugins: {
+    CapacitorHttp: {
+      enabled: true
+    }
   }
-  // Removed GoogleAuth plugin configuration temporarily
 };
 
 export default config;

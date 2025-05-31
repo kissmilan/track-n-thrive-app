@@ -1,26 +1,45 @@
-<!DOCTYPE html>
-<html lang="en">
+
+<!doctype html>
+<html lang="hu">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/placeholder.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>track-n-thrive-app</title>
-    <meta name="description" content="Lovable Generated Project" />
-    <meta name="author" content="Lovable" />
-
-    <meta property="og:title" content="track-n-thrive-app" />
-    <meta property="og:description" content="Lovable Generated Project" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@lovable_dev" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <title>FitTracker Pro</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#facc15" />
+    <meta name="description" content="Professzionális edzés- és étrendkövető rendszer személyi edzőknek és klienseiknek" />
+    
+    <!-- Apple PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="FitTracker Pro" />
+    <link rel="apple-touch-icon" href="/placeholder.svg" />
+    
+    <!-- Google APIs -->
+    <script src="https://apis.google.com/js/api.js" async defer></script>
   </head>
-
   <body>
     <div id="root"></div>
-    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
-    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration);
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+    </script>
   </body>
 </html>

@@ -1,0 +1,52 @@
+
+{
+  "name": "FitTracker Pro",
+  "short_name": "FitTracker",
+  "description": "Professzionális edzés- és étrendkövető rendszer személyi edzőknek és klienseiknek",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#facc15",
+  "orientation": "portrait-primary",
+  "categories": ["fitness", "health", "lifestyle"],
+  "icons": [
+    {
+      "src": "/placeholder.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/placeholder.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Edzés naplózás",
+      "short_name": "Edzés",
+      "description": "Gyors hozzáférés az edzés naplózáshoz",
+      "url": "/?shortcut=workout",
+      "icons": [
+        {
+          "src": "/placeholder.svg",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Étkezés tervező",
+      "short_name": "Étrend",
+      "description": "Gyors hozzáférés az étkezés tervezőhöz",
+      "url": "/?shortcut=meals",
+      "icons": [
+        {
+          "src": "/placeholder.svg",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ]
+}

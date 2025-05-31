@@ -1,5 +1,5 @@
 
-// Temporary mock implementation until proper Google Auth setup
+// Real Google Auth implementation for web platform
 interface GoogleAuthResult {
   authentication?: {
     accessToken: string;
@@ -8,27 +8,74 @@ interface GoogleAuthResult {
   user?: any;
 }
 
-class MockGoogleAuth {
-  static async initialize(config: any) {
-    console.log('Mock Google Auth initialized with config:', config);
+declare global {
+  interface Window {
+    google?: any;
+    gapi?: any;
+  }
+}
+
+class WebGoogleAuth {
+  private static clientId = '1070518728039-4l0ambas9mhvoom8ssl1lj9hl0tb5irj.apps.googleusercontent.com';
+  private static isInitialized = false;
+
+  static async initialize() {
+    if (this.isInitialized) return;
+
+    // Load Google APIs
+    await this.loadGoogleAPIs();
+    
+    // Initialize Google Auth
+    await new Promise((resolve) => {
+      window.gapi.load('auth2', async () => {
+        await window.gapi.auth2.init({
+          client_id: this.clientId,
+          scope: 'profile email https://www.googleapis.com/auth/spreadsheets'
+        });
+        resolve(true);
+      });
+    });
+
+    this.isInitialized = true;
+  }
+
+  static loadGoogleAPIs(): Promise<void> {
+    return new Promise((resolve) => {
+      if (window.gapi) {
+        resolve();
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://apis.google.com/js/api.js';
+      script.onload = () => resolve();
+      document.head.appendChild(script);
+    });
   }
 
   static async signIn(): Promise<GoogleAuthResult> {
-    // Mock successful sign-in for development
+    const authInstance = window.gapi.auth2.getAuthInstance();
+    const googleUser = await authInstance.signIn();
+    
+    const authResponse = googleUser.getAuthResponse();
+    const profile = googleUser.getBasicProfile();
+    
     return {
       authentication: {
-        accessToken: 'mock_access_token_' + Date.now()
+        accessToken: authResponse.access_token
       },
-      serverAuthCode: 'mock_server_auth_code',
+      serverAuthCode: authResponse.code,
       user: {
-        email: 'demo@example.com',
-        name: 'Demo User'
+        email: profile.getEmail(),
+        name: profile.getName(),
+        imageUrl: profile.getImageUrl()
       }
     };
   }
 
   static async signOut() {
-    console.log('Mock Google Auth sign out');
+    const authInstance = window.gapi.auth2.getAuthInstance();
+    await authInstance.signOut();
   }
 }
 
@@ -38,20 +85,19 @@ export class GoogleAuthService {
   async initialize() {
     if (this.isInitialized) return;
 
-    // Mock initialization for web platform
-    await MockGoogleAuth.initialize({
-      clientId: '1070518728039-4l0ambas9mhvoom8ssl1lj9hl0tb5irj.apps.googleusercontent.com',
-      scopes: ['profile', 'email', 'https://www.googleapis.com/auth/spreadsheets'],
-      grantOfflineAccess: true
-    });
-
-    this.isInitialized = true;
+    try {
+      await WebGoogleAuth.initialize();
+      this.isInitialized = true;
+    } catch (error) {
+      console.error('Google Auth initialization error:', error);
+      throw error;
+    }
   }
 
   async signIn() {
     try {
       await this.initialize();
-      const result = await MockGoogleAuth.signIn();
+      const result = await WebGoogleAuth.signIn();
       
       if (result.authentication?.accessToken) {
         // Tároljuk el a tokent
@@ -77,7 +123,7 @@ export class GoogleAuthService {
 
   async signOut() {
     try {
-      await MockGoogleAuth.signOut();
+      await WebGoogleAuth.signOut();
       localStorage.removeItem('google_access_token');
       localStorage.removeItem('google_refresh_token');
       localStorage.removeItem('client_sheet_id');
