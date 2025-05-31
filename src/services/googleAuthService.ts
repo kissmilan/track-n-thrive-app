@@ -1,5 +1,5 @@
 
-import { GoogleAuth } from '@capacitor-community/google-auth';
+import { GoogleAuth } from '@capacitor/google-auth';
 import { Capacitor } from '@capacitor/core';
 
 export class GoogleAuthService {
