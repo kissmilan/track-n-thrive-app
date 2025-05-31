@@ -11,7 +11,7 @@ export class GoogleAuthService {
     // Csak webes platformon kell inicializálni
     if (!Capacitor.isNativePlatform()) {
       await GoogleAuth.initialize({
-        clientId: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
+        clientId: 1070518728039-4l0ambas9mhvoom8ssl1lj9hl0tb5irj.apps.googleusercontent.com,
         scopes: ['profile', 'email', 'https://www.googleapis.com/auth/spreadsheets'],
         grantOfflineAccess: true
       });
