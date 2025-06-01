@@ -1,12 +1,6 @@
 
 import React, { useEffect } from 'react';
 
-declare global {
-  interface Window {
-    google: any;
-  }
-}
-
 interface GoogleLoginButtonProps {
   onSuccess: (credential: string) => void;
   onError?: () => void;
