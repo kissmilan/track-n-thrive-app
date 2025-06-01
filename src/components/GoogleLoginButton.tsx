@@ -1,12 +1,13 @@
 
 import React, { useEffect } from 'react';
 
-interface GoogleLoginButtonProps {
-  onSuccess: (credential: string) => void;
-  onError?: () => void;
+declare global {
+  interface Window {
+    google: any;
+  }
 }
 
-const GoogleLoginButton = ({ onSuccess, onError }: GoogleLoginButtonProps) => {
+const GoogleLoginButton = () => {
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
@@ -23,32 +24,18 @@ const GoogleLoginButton = ({ onSuccess, onError }: GoogleLoginButtonProps) => {
         {
           theme: 'outline',
           size: 'large',
-          width: '100%',
         }
       );
     };
-    
-    script.onerror = () => {
-      console.error('Failed to load Google Sign-In script');
-      onError?.();
-    };
-    
     document.body.appendChild(script);
-
-    return () => {
-      // Cleanup script on unmount
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
-    };
   }, []);
 
   const handleCredentialResponse = (response: any) => {
     console.log("ID token:", response.credential);
-    onSuccess(response.credential);
+    // Itt küldheted el a backendednek POST-tal
   };
 
-  return <div id="googleSignInDiv" className="w-full"></div>;
+  return <div id="googleSignInDiv"></div>;
 };
 
 export default GoogleLoginButton;
