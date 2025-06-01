@@ -4,9 +4,10 @@ import { Download, Apple, Activity, Target } from "lucide-react";
 
 interface WelcomeScreenProps {
   onDownloadApp: () => void;
+  children: React.ReactNode;
 }
 
-const WelcomeScreen = ({ onDownloadApp }: WelcomeScreenProps) => {
+const WelcomeScreen = ({ onDownloadApp, children }: WelcomeScreenProps) => {
   return (
     <div className="min-h-screen bg-black">
       <div className="container mx-auto px-4 py-16">
@@ -27,6 +28,8 @@ const WelcomeScreen = ({ onDownloadApp }: WelcomeScreenProps) => {
               Alkalmazás letöltése
             </Button>
           </div>
+
+          {children}
 
           <div className="mt-16 grid md:grid-cols-3 gap-6 text-center">
             <div className="p-6">
