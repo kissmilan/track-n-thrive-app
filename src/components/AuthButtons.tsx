@@ -2,6 +2,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Settings, Activity, Target } from "lucide-react";
+import GoogleLoginButton from "./GoogleLoginButton";
+import { useToast } from "@/hooks/use-toast";
 
 interface AuthButtonsProps {
   onGoogleAuth: (type: "client" | "admin") => void;
@@ -9,6 +11,26 @@ interface AuthButtonsProps {
 }
 
 const AuthButtons = ({ onGoogleAuth, isLoading }: AuthButtonsProps) => {
+  const { toast } = useToast();
+
+  const handleGoogleSuccess = (userType: "client" | "admin") => (credential: string) => {
+    console.log(`${userType} Google bejelentkezés sikeres:`, credential);
+    toast({
+      title: "Google bejelentkezés sikeres",
+      description: `Sikeresen beléptél ${userType === "client" ? "kliens" : "edző"} módban`,
+    });
+    // Itt később integrálhatjuk a meglévő auth rendszerrel
+    onGoogleAuth(userType);
+  };
+
+  const handleGoogleError = () => {
+    toast({
+      title: "Google bejelentkezési hiba",
+      description: "Nem sikerült bejelentkezni Google fiókkal",
+      variant: "destructive"
+    });
+  };
+
   return (
     <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
       <Card className="border-2 border-gray-700 bg-gray-900 hover:border-yellow-400 transition-all duration-300 hover:shadow-lg hover:shadow-yellow-400/20">
@@ -21,14 +43,19 @@ const AuthButtons = ({ onGoogleAuth, isLoading }: AuthButtonsProps) => {
             Követd az edzéseidet, testsúlyodat és étrendedet
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <GoogleLoginButton 
+            onSuccess={handleGoogleSuccess("client")}
+            onError={handleGoogleError}
+          />
+          <div className="text-center text-gray-400 text-sm">vagy</div>
           <Button 
             onClick={() => onGoogleAuth("client")} 
             disabled={isLoading}
             className="w-full bg-yellow-400 hover:bg-yellow-500 text-black py-3 text-lg font-medium"
           >
             <Activity className="w-5 h-5 mr-2" />
-            {isLoading ? "Bejelentkezés..." : "Belépés Google-lel"}
+            {isLoading ? "Bejelentkezés..." : "Régi módszer (Google API)"}
           </Button>
         </CardContent>
       </Card>
@@ -43,14 +70,19 @@ const AuthButtons = ({ onGoogleAuth, isLoading }: AuthButtonsProps) => {
             Kövesd a klienseid haladását és kezeld az adatokat
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <GoogleLoginButton 
+            onSuccess={handleGoogleSuccess("admin")}
+            onError={handleGoogleError}
+          />
+          <div className="text-center text-gray-400 text-sm">vagy</div>
           <Button 
             onClick={() => onGoogleAuth("admin")} 
             disabled={isLoading}
             className="w-full bg-yellow-400 hover:bg-yellow-500 text-black py-3 text-lg font-medium"
           >
             <Target className="w-5 h-5 mr-2" />
-            {isLoading ? "Bejelentkezés..." : "Admin Belépés"}
+            {isLoading ? "Bejelentkezés..." : "Admin Belépés (régi)"}
           </Button>
         </CardContent>
       </Card>
