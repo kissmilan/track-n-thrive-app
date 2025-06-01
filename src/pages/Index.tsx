@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserPlus, Users, Activity, Target, Apple, Settings } from "lucide-react";
+import { UserPlus, Users, Activity, Target, Apple, Settings, Download, Smartphone } from "lucide-react";
 import ClientDashboard from "@/components/ClientDashboard";
 import AdminPanel from "@/components/AdminPanel";
 import { useToast } from "@/hooks/use-toast";
@@ -16,19 +16,31 @@ const Index = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Ellenőrizzük, hogy már be van-e jelentkezve a felhasználó
-    if (googleAuthService.isAuthenticated()) {
-      setIsAuthenticated(true);
-      // Itt állíthatnád be a userType-ot a localStorage alapján is
-      const savedUserType = localStorage.getItem('user_type') as "client" | "admin" | null;
-      const savedUser = localStorage.getItem('user_data');
-      if (savedUserType) {
-        setUserType(savedUserType);
+    const checkAuthStatus = async () => {
+      try {
+        if (googleAuthService.isAuthenticated()) {
+          setIsAuthenticated(true);
+          const savedUserType = localStorage.getItem('user_type') as "client" | "admin" | null;
+          const currentUser = googleAuthService.getCurrentUser();
+          
+          if (savedUserType) {
+            setUserType(savedUserType);
+          }
+          if (currentUser) {
+            setUser(currentUser);
+          }
+        }
+      } catch (error) {
+        console.error('Auth status check failed:', error);
+        // Ha hiba van, töröljük a tárolt adatokat
+        localStorage.clear();
+        setIsAuthenticated(false);
+        setUserType(null);
+        setUser(null);
       }
-      if (savedUser) {
-        setUser(JSON.parse(savedUser));
-      }
-    }
+    };
+
+    checkAuthStatus();
   }, []);
 
   const handleGoogleAuth = async (type: "client" | "admin") => {
@@ -41,9 +53,8 @@ const Index = () => {
         // Állítsuk be a tokent a Google Sheets szolgáltatásban
         googleSheetsService.setAccessToken(result.accessToken);
         
-        // Mentsük el a felhasználó típusát és adatait
+        // Mentsük el a felhasználó típusát
         localStorage.setItem('user_type', type);
-        localStorage.setItem('user_data', JSON.stringify(result.user));
         
         setUserType(type);
         setIsAuthenticated(true);
@@ -72,8 +83,6 @@ const Index = () => {
       setIsAuthenticated(false);
       setUserType(null);
       setUser(null);
-      localStorage.removeItem('user_type');
-      localStorage.removeItem('user_data');
       
       toast({
         title: "Sikeres kijelentkezés",
@@ -85,6 +94,28 @@ const Index = () => {
         title: "Kijelentkezési hiba",
         description: "Hiba történt a kijelentkezés során.",
         variant: "destructive"
+      });
+    }
+  };
+
+  const handleDownloadApp = () => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isAndroid = /Android/.test(navigator.userAgent);
+    
+    if (isIOS) {
+      toast({
+        title: "iOS Telepítés",
+        description: "Safari böngészőben nyisd meg az oldalt, majd kattints a 'Megosztás' gombra és válaszd a 'Hozzáadás a kezdőképernyőhöz' opciót.",
+      });
+    } else if (isAndroid) {
+      toast({
+        title: "Android Telepítés",
+        description: "Chrome böngészőben a címsor mellett megjelenik egy 'Telepítés' ikon. Kattints rá és kövesd az utasításokat.",
+      });
+    } else {
+      toast({
+        title: "Asztali telepítés",
+        description: "A böngésző címsorában megjelenik egy telepítés ikon. Kattints rá az alkalmazás telepítéséhez.",
       });
     }
   };
@@ -101,6 +132,15 @@ const Index = () => {
               <p className="text-xl text-gray-300 mb-8">
                 Professzionális edzés- és étrendkövető rendszer személyi edzőknek és klienseiknek
               </p>
+              
+              {/* Letöltési gomb */}
+              <Button
+                onClick={handleDownloadApp}
+                className="mb-8 bg-green-600 hover:bg-green-700 text-white px-6 py-3 text-lg font-medium"
+              >
+                <Download className="w-5 h-5 mr-2" />
+                Alkalmazás letöltése
+              </Button>
             </div>
 
             <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
@@ -186,6 +226,15 @@ const Index = () => {
             Üdv, {user.user?.name || user.name || 'Felhasználó'}!
           </div>
         )}
+        <Button
+          onClick={handleDownloadApp}
+          variant="outline"
+          size="sm"
+          className="border-green-400 text-green-400 hover:bg-green-400 hover:text-black"
+        >
+          <Smartphone className="w-4 h-4 mr-1" />
+          Letöltés
+        </Button>
         <Button 
           onClick={handleSignOut}
           variant="outline"

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Save, ChefHat, Calendar, ShoppingCart, Trash2 } from "lucide-react";
+import { Plus, Save, ChefHat, Calendar, ShoppingCart, Trash2, ExternalLink, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { googleSheetsService, MealOption, ShoppingListItem } from "@/services/googleSheetsService";
 
@@ -24,6 +23,25 @@ const MealPlanner = () => {
   const [showShoppingList, setShowShoppingList] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+
+  // Mock recept linkek - ezeket lecserélheted valódi Google Docs linkekre
+  const getRecipeLink = (mealName: string): string => {
+    // Alapértelmezett recept link struktúra
+    const baseUrl = "https://docs.google.com/document/d/";
+    const recipeLinks: Record<string, string> = {
+      "Zabpehely gyümölccsel": `${baseUrl}1abc123/edit`,
+      "Tojásrántotta": `${baseUrl}2def456/edit`,
+      "Müzli joghurttal": `${baseUrl}3ghi789/edit`,
+      "Csirkemell salátával": `${baseUrl}4jkl012/edit`,
+      "Brokkolileves": `${baseUrl}5mno345/edit`,
+      "Quinoa tál": `${baseUrl}6pqr678/edit`,
+      "Sült hal zöldségekkel": `${baseUrl}7stu901/edit`,
+      "Fehérjés smoothie": `${baseUrl}8vwx234/edit`,
+      "Omlette": `${baseUrl}9yzab567/edit`
+    };
+
+    return recipeLinks[mealName] || `${baseUrl}example/edit`;
+  };
 
   useEffect(() => {
     const loadMealOptions = async () => {
@@ -223,6 +241,7 @@ const MealPlanner = () => {
         </Card>
       )}
 
+      {/* Frissített étkezések listája recept linkekkel */}
       {Object.entries(groupedMeals).map(([mealType, meals]) => (
         <Card key={mealType} className="bg-gray-900 border-gray-700">
           <CardHeader>
@@ -232,26 +251,39 @@ const MealPlanner = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {meals.map((meal) => (
-                <div key={meal.id} className="flex justify-between items-center p-3 bg-gray-800 rounded-lg">
-                  <div>
-                    <span className="font-medium text-white">{meal.option.name}</span>
-                    <div className="text-sm text-gray-400">
-                      {meal.option.amount} • {meal.option.calories} kcal
+                <div key={meal.id} className="space-y-2">
+                  <div className="flex justify-between items-center p-3 bg-gray-800 rounded-lg">
+                    <div>
+                      <span className="font-medium text-white">{meal.option.name}</span>
+                      <div className="text-sm text-gray-400">
+                        {meal.option.amount} • {meal.option.calories} kcal
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {meal.option.ingredients.map(ing => ing.name).join(", ")}
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {meal.option.ingredients.map(ing => ing.name).join(", ")}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(getRecipeLink(meal.option.name), '_blank')}
+                        className="text-blue-400 hover:text-blue-300 border-gray-600 hover:bg-blue-900/20"
+                      >
+                        <FileText className="w-4 h-4 mr-1" />
+                        Recept
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeMeal(meal.id)}
+                        className="text-red-400 hover:text-red-300 border-gray-600 hover:bg-red-900/20"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => removeMeal(meal.id)}
-                    className="text-red-400 hover:text-red-300 border-gray-600 hover:bg-red-900/20"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
                 </div>
               ))}
             </div>
