@@ -1,13 +1,12 @@
 
 import React, { useEffect } from 'react';
 
-declare global {
-  interface Window {
-    google: any;
-  }
+interface GoogleLoginButtonProps {
+  onSuccess?: (credential: string) => void;
+  onError?: () => void;
 }
 
-const GoogleLoginButton = () => {
+const GoogleLoginButton = ({ onSuccess, onError }: GoogleLoginButtonProps) => {
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
@@ -24,6 +23,7 @@ const GoogleLoginButton = () => {
         {
           theme: 'outline',
           size: 'large',
+          width: '100%'
         }
       );
     };
@@ -32,10 +32,12 @@ const GoogleLoginButton = () => {
 
   const handleCredentialResponse = (response: any) => {
     console.log("ID token:", response.credential);
-    // Itt küldheted el a backendednek POST-tal
+    if (onSuccess) {
+      onSuccess(response.credential);
+    }
   };
 
-  return <div id="googleSignInDiv"></div>;
+  return <div id="googleSignInDiv" className="w-full"></div>;
 };
 
 export default GoogleLoginButton;

@@ -8,13 +8,6 @@ interface GoogleAuthResult {
   user?: any;
 }
 
-declare global {
-  interface Window {
-    google?: any;
-    gapi?: any;
-  }
-}
-
 class WebGoogleAuth {
   private static clientId = '1070518728039-4l0ambas9mhvoom8ssl1lj9hl0tb5irj.apps.googleusercontent.com';
   private static isInitialized = false;
