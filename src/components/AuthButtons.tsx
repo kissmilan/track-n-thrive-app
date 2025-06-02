@@ -15,12 +15,43 @@ const AuthButtons = ({ onGoogleAuth, isLoading }: AuthButtonsProps) => {
 
   const handleGoogleSuccess = (userType: "client" | "admin") => (credential: string) => {
     console.log(`${userType} Google bejelentkezés sikeres:`, credential);
-    toast({
-      title: "Google bejelentkezés sikeres",
-      description: `Sikeresen beléptél ${userType === "client" ? "kliens" : "edző"} módban`,
-    });
-    // Itt később integrálhatjuk a meglévő auth rendszerrel
-    onGoogleAuth(userType);
+    
+    // Dekódoljuk a JWT tokent hogy megkapjuk az email címet
+    try {
+      const payload = JSON.parse(atob(credential.split('.')[1]));
+      const userEmail = payload.email;
+      
+      // Admin email ellenőrzés
+      const adminEmails = ['kissmilan93@gmail.com']; // Itt add meg a saját admin email címedet
+      const isAdmin = adminEmails.includes(userEmail);
+      
+      // Ha admin próbál kliens módban belépni, akkor admin módba irányítjuk
+      const finalUserType = isAdmin ? 'admin' : userType;
+      
+      localStorage.setItem('google_id_token', credential);
+      localStorage.setItem('google_auth_user', JSON.stringify({
+        user: {
+          email: userEmail,
+          name: payload.name,
+          imageUrl: payload.picture,
+          id: payload.sub
+        }
+      }));
+      
+      toast({
+        title: "Google bejelentkezés sikeres",
+        description: `Sikeresen beléptél ${finalUserType === "client" ? "kliens" : "admin"} módban`,
+      });
+      
+      onGoogleAuth(finalUserType);
+    } catch (error) {
+      console.error('Token dekódolási hiba:', error);
+      toast({
+        title: "Bejelentkezési hiba", 
+        description: "Nem sikerült feldolgozni a Google tokent",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleGoogleError = () => {
@@ -55,7 +86,7 @@ const AuthButtons = ({ onGoogleAuth, isLoading }: AuthButtonsProps) => {
             className="w-full bg-yellow-400 hover:bg-yellow-500 text-black py-3 text-lg font-medium"
           >
             <Activity className="w-5 h-5 mr-2" />
-            {isLoading ? "Bejelentkezés..." : "Régi módszer (Google API)"}
+            {isLoading ? "Bejelentkezés..." : "Alternatív belépés"}
           </Button>
         </CardContent>
       </Card>
@@ -65,7 +96,7 @@ const AuthButtons = ({ onGoogleAuth, isLoading }: AuthButtonsProps) => {
           <div className="w-16 h-16 mx-auto mb-4 bg-yellow-400/20 rounded-full flex items-center justify-center">
             <Settings className="w-8 h-8 text-yellow-400" />
           </div>
-          <CardTitle className="text-2xl text-yellow-400">Edző Belépés</CardTitle>
+          <CardTitle className="text-2xl text-yellow-400">Admin Belépés</CardTitle>
           <CardDescription className="text-gray-300">
             Kövesd a klienseid haladását és kezeld az adatokat
           </CardDescription>
@@ -82,7 +113,7 @@ const AuthButtons = ({ onGoogleAuth, isLoading }: AuthButtonsProps) => {
             className="w-full bg-yellow-400 hover:bg-yellow-500 text-black py-3 text-lg font-medium"
           >
             <Target className="w-5 h-5 mr-2" />
-            {isLoading ? "Bejelentkezés..." : "Admin Belépés (régi)"}
+            {isLoading ? "Bejelentkezés..." : "Admin Belépés"}
           </Button>
         </CardContent>
       </Card>

@@ -1,11 +1,11 @@
 
-// Real Google Auth implementation for web platform
 interface GoogleAuthResult {
   authentication?: {
     accessToken: string;
   };
   serverAuthCode?: string;
   user?: any;
+  accessToken?: string;
 }
 
 class WebGoogleAuth {
@@ -17,23 +17,25 @@ class WebGoogleAuth {
     if (this.isInitialized && this.authInstance) return;
 
     try {
-      // Load Google APIs
       await this.loadGoogleAPIs();
       
-      // Initialize Google Auth
       await new Promise((resolve, reject) => {
-        window.gapi.load('auth2', async () => {
-          try {
-            this.authInstance = await window.gapi.auth2.init({
-              client_id: this.clientId,
-              scope: 'profile email https://www.googleapis.com/auth/spreadsheets'
-            });
-            this.isInitialized = true;
-            resolve(true);
-          } catch (error) {
-            reject(error);
-          }
-        });
+        if (window.gapi) {
+          window.gapi.load('auth2', async () => {
+            try {
+              this.authInstance = await window.gapi.auth2.init({
+                client_id: this.clientId,
+                scope: 'profile email https://www.googleapis.com/auth/spreadsheets'
+              });
+              this.isInitialized = true;
+              resolve(true);
+            } catch (error) {
+              reject(error);
+            }
+          });
+        } else {
+          reject(new Error('Google API not loaded'));
+        }
       });
     } catch (error) {
       console.error('Google Auth initialization failed:', error);
@@ -57,27 +59,34 @@ class WebGoogleAuth {
   }
 
   static async signIn(): Promise<GoogleAuthResult> {
-    if (!this.authInstance) {
-      await this.initialize();
-    }
-
-    const googleUser = await this.authInstance.signIn();
-    const authResponse = googleUser.getAuthResponse();
-    const profile = googleUser.getBasicProfile();
-    
-    return {
-      authentication: {
-        accessToken: authResponse.access_token
-      },
-      serverAuthCode: authResponse.code,
-      user: {
-        user: {
-          email: profile.getEmail(),
-          name: profile.getName(),
-          imageUrl: profile.getImageUrl()
-        }
+    try {
+      if (!this.authInstance) {
+        await this.initialize();
       }
-    };
+
+      const googleUser = await this.authInstance.signIn();
+      const authResponse = googleUser.getAuthResponse();
+      const profile = googleUser.getBasicProfile();
+      
+      return {
+        authentication: {
+          accessToken: authResponse.access_token
+        },
+        accessToken: authResponse.access_token,
+        serverAuthCode: authResponse.code,
+        user: {
+          user: {
+            email: profile.getEmail(),
+            name: profile.getName(),
+            imageUrl: profile.getImageUrl(),
+            id: profile.getId()
+          }
+        }
+      };
+    } catch (error) {
+      console.error('Google sign in error:', error);
+      throw error;
+    }
   }
 
   static async signOut() {
@@ -112,12 +121,10 @@ export class GoogleAuthService {
       await this.initialize();
       const result = await WebGoogleAuth.signIn();
       
-      if (result.authentication?.accessToken) {
-        // Tároljuk el a tokent
-        localStorage.setItem('google_access_token', result.authentication.accessToken);
+      if (result.accessToken) {
+        localStorage.setItem('google_access_token', result.accessToken);
         localStorage.setItem('google_auth_user', JSON.stringify(result.user));
         
-        // Ha van refresh token, azt is tároljuk
         if (result.serverAuthCode) {
           localStorage.setItem('google_refresh_token', result.serverAuthCode);
         }
@@ -126,7 +133,7 @@ export class GoogleAuthService {
         
         return {
           user: result.user,
-          accessToken: result.authentication.accessToken
+          accessToken: result.accessToken
         };
       }
       
@@ -142,7 +149,6 @@ export class GoogleAuthService {
       await this.initialize();
       await WebGoogleAuth.signOut();
       
-      // Töröljük a tárolt adatokat
       localStorage.removeItem('google_access_token');
       localStorage.removeItem('google_refresh_token');
       localStorage.removeItem('google_auth_user');
@@ -164,7 +170,7 @@ export class GoogleAuthService {
   isAuthenticated(): boolean {
     const hasToken = !!localStorage.getItem('google_access_token');
     const hasUser = !!localStorage.getItem('google_auth_user');
-    return hasToken && hasUser && WebGoogleAuth.isSignedIn();
+    return hasToken && hasUser;
   }
 
   getCurrentUser() {

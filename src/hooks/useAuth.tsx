@@ -2,7 +2,6 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { googleAuthService } from "@/services/googleAuthService";
-import { googleSheetsService } from "@/services/googleSheetsService";
 
 export const useAuth = () => {
   const [userType, setUserType] = useState<"client" | "admin" | null>(null);
@@ -14,7 +13,17 @@ export const useAuth = () => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        if (googleAuthService.isAuthenticated()) {
+        // Ellenőrizzük a localStorage-ban tárolt adatokat
+        const savedUserType = localStorage.getItem('user_type') as "client" | "admin" | null;
+        const googleToken = localStorage.getItem('google_id_token');
+        const currentUser = localStorage.getItem('google_auth_user');
+        
+        if (googleToken && currentUser && savedUserType) {
+          setIsAuthenticated(true);
+          setUserType(savedUserType);
+          setUser(JSON.parse(currentUser));
+        } else if (googleAuthService.isAuthenticated()) {
+          // Fallback a régi módszerre
           setIsAuthenticated(true);
           const savedUserType = localStorage.getItem('user_type') as "client" | "admin" | null;
           const currentUser = googleAuthService.getCurrentUser();
@@ -45,7 +54,6 @@ export const useAuth = () => {
       const result = await googleAuthService.signIn();
       
       if (result.accessToken) {
-        googleSheetsService.setAccessToken(result.accessToken);
         localStorage.setItem('user_type', type);
         
         setUserType(type);

@@ -13,31 +13,39 @@ const GoogleLoginButton = ({ onSuccess, onError }: GoogleLoginButtonProps) => {
     script.async = true;
     script.defer = true;
     script.onload = () => {
-      window.google.accounts.id.initialize({
-        client_id: '1070518728039-4l0ambas9mhvoom8ssl1lj9hl0tb5irj.apps.googleusercontent.com',
-        callback: handleCredentialResponse,
-      });
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.initialize({
+          client_id: '1070518728039-4l0ambas9mhvoom8ssl1lj9hl0tb5irj.apps.googleusercontent.com',
+          callback: handleCredentialResponse,
+        });
 
-      window.google.accounts.id.renderButton(
-        document.getElementById('googleSignInDiv'),
-        {
-          theme: 'outline',
-          size: 'large',
-          width: '100%'
-        }
-      );
+        window.google.accounts.id.renderButton(
+          document.getElementById('googleSignInDiv'),
+          {
+            theme: 'outline',
+            size: 'large',
+            width: 250
+          }
+        );
+      }
     };
     document.body.appendChild(script);
+
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
   }, []);
 
   const handleCredentialResponse = (response: any) => {
-    console.log("ID token:", response.credential);
+    console.log("Google ID token:", response.credential);
     if (onSuccess) {
       onSuccess(response.credential);
     }
   };
 
-  return <div id="googleSignInDiv" className="w-full"></div>;
+  return <div id="googleSignInDiv" className="w-full flex justify-center"></div>;
 };
 
 export default GoogleLoginButton;
