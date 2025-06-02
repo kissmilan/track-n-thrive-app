@@ -16,13 +16,12 @@ const AuthButtons = ({ onGoogleAuth, isLoading }: AuthButtonsProps) => {
   const handleGoogleSuccess = (userType: "client" | "admin") => (credential: string) => {
     console.log(`${userType} Google bejelentkezés sikeres:`, credential);
     
-    // Dekódoljuk a JWT tokent hogy megkapjuk az email címet
     try {
       const payload = JSON.parse(atob(credential.split('.')[1]));
       const userEmail = payload.email;
       
       // Admin email ellenőrzés
-      const adminEmails = ['kissmilan93@gmail.com']; // Itt add meg a saját admin email címedet
+      const adminEmails = ['kissmilan93@gmail.com', 'kissmilanifit@gmail.com']; 
       const isAdmin = adminEmails.includes(userEmail);
       
       // Ha admin próbál kliens módban belépni, akkor admin módba irányítjuk
@@ -79,19 +78,10 @@ const AuthButtons = ({ onGoogleAuth, isLoading }: AuthButtonsProps) => {
             onSuccess={handleGoogleSuccess("client")}
             onError={handleGoogleError}
           />
-          <div className="text-center text-gray-400 text-sm">vagy</div>
-          <Button 
-            onClick={() => onGoogleAuth("client")} 
-            disabled={isLoading}
-            className="w-full bg-yellow-400 hover:bg-yellow-500 text-black py-3 text-lg font-medium"
-          >
-            <Activity className="w-5 h-5 mr-2" />
-            {isLoading ? "Bejelentkezés..." : "Alternatív belépés"}
-          </Button>
         </CardContent>
       </Card>
 
-      <Card className="border-2 border-gray-700 bg-gray-900 hover:border-yellow-400 transition-all duration-300 hover:shadow-lg hover:shadow-yellow-400/20">
+      <Card className="border-2 border-gray-700 bg-gray-900 hover:border-yellow-400 transition-all duration-300 hover:shadow-lg hover:shadow-400/20">
         <CardHeader className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 bg-yellow-400/20 rounded-full flex items-center justify-center">
             <Settings className="w-8 h-8 text-yellow-400" />
@@ -106,15 +96,6 @@ const AuthButtons = ({ onGoogleAuth, isLoading }: AuthButtonsProps) => {
             onSuccess={handleGoogleSuccess("admin")}
             onError={handleGoogleError}
           />
-          <div className="text-center text-gray-400 text-sm">vagy</div>
-          <Button 
-            onClick={() => onGoogleAuth("admin")} 
-            disabled={isLoading}
-            className="w-full bg-yellow-400 hover:bg-yellow-500 text-black py-3 text-lg font-medium"
-          >
-            <Target className="w-5 h-5 mr-2" />
-            {isLoading ? "Bejelentkezés..." : "Admin Belépés"}
-          </Button>
         </CardContent>
       </Card>
     </div>

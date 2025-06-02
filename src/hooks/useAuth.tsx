@@ -13,7 +13,6 @@ export const useAuth = () => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        // Ellenőrizzük a localStorage-ban tárolt adatokat
         const savedUserType = localStorage.getItem('user_type') as "client" | "admin" | null;
         const googleToken = localStorage.getItem('google_id_token');
         const currentUser = localStorage.getItem('google_auth_user');
@@ -22,18 +21,6 @@ export const useAuth = () => {
           setIsAuthenticated(true);
           setUserType(savedUserType);
           setUser(JSON.parse(currentUser));
-        } else if (googleAuthService.isAuthenticated()) {
-          // Fallback a régi módszerre
-          setIsAuthenticated(true);
-          const savedUserType = localStorage.getItem('user_type') as "client" | "admin" | null;
-          const currentUser = googleAuthService.getCurrentUser();
-          
-          if (savedUserType) {
-            setUserType(savedUserType);
-          }
-          if (currentUser) {
-            setUser(currentUser);
-          }
         }
       } catch (error) {
         console.error('Auth status check failed:', error);
@@ -51,18 +38,20 @@ export const useAuth = () => {
     setIsLoading(true);
     
     try {
-      const result = await googleAuthService.signIn();
+      // A Google auth már megtörtént a GoogleLoginButton-ban
+      // Itt csak beállítjuk a user type-ot
+      localStorage.setItem('user_type', type);
       
-      if (result.accessToken) {
-        localStorage.setItem('user_type', type);
-        
+      const currentUser = localStorage.getItem('google_auth_user');
+      if (currentUser) {
         setUserType(type);
         setIsAuthenticated(true);
-        setUser(result.user);
+        setUser(JSON.parse(currentUser));
         
+        const userObj = JSON.parse(currentUser);
         toast({
           title: "Sikeres bejelentkezés",
-          description: `Üdvözölünk a FitTracker Pro-ban, ${result.user?.user?.name || 'Felhasználó'}!`,
+          description: `Üdvözölünk a FitTracker Pro-ban, ${userObj.user?.name || 'Felhasználó'}!`,
         });
       }
     } catch (error) {
