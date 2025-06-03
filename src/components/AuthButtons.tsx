@@ -20,12 +20,27 @@ const AuthButtons = ({ onGoogleAuth, isLoading }: AuthButtonsProps) => {
       const payload = JSON.parse(atob(credential.split('.')[1]));
       const userEmail = payload.email;
       
-      // Admin email ellenőrzés - frissített email cím
-      const adminEmails = ['milanka98@gmail.com', 'kissmilanifit@gmail.com']; 
+      // Admin email ellenőrzés - csak milanka98@gmail.com az admin
+      const adminEmails = ['milanka98@gmail.com']; 
       const isAdmin = adminEmails.includes(userEmail);
       
-      // Ha admin próbál kliens módban belépni, akkor admin módba irányítjuk
-      const finalUserType = isAdmin ? 'admin' : userType;
+      // Csak akkor irányítjuk admin módba, ha valóban admin és admin módban próbál belépni
+      // VAGY ha admin email és kliens módban próbál belépni
+      let finalUserType = userType;
+      if (isAdmin && userType === "client") {
+        finalUserType = "admin";
+        toast({
+          title: "Admin felhasználó",
+          description: "Admin jogosultságokkal rendelkezel, admin módba irányítunk.",
+        });
+      } else if (!isAdmin && userType === "admin") {
+        toast({
+          title: "Hozzáférés megtagadva",
+          description: "Nincs admin jogosultságod.",
+          variant: "destructive"
+        });
+        return; // Ne folytassuk a bejelentkezést
+      }
       
       localStorage.setItem('google_id_token', credential);
       localStorage.setItem('google_auth_user', JSON.stringify({
@@ -81,7 +96,7 @@ const AuthButtons = ({ onGoogleAuth, isLoading }: AuthButtonsProps) => {
         </CardContent>
       </Card>
 
-      <Card className="border-2 border-gray-700 bg-gray-900 hover:border-yellow-400 transition-all duration-300 hover:shadow-lg hover:shadow-400/20">
+      <Card className="border-2 border-gray-700 bg-gray-900 hover:border-yellow-400 transition-all duration-300 hover:shadow-lg hover:shadow-yellow-400/20">
         <CardHeader className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 bg-yellow-400/20 rounded-full flex items-center justify-center">
             <Settings className="w-8 h-8 text-yellow-400" />

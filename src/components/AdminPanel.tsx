@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,37 +33,8 @@ const AdminPanel = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    initializeAuth();
     loadClients();
   }, []);
-
-  const initializeAuth = async () => {
-    try {
-      // Ellenőrizzük, hogy van-e Google token
-      const googleToken = localStorage.getItem('google_id_token');
-      const googleUser = localStorage.getItem('google_auth_user');
-      
-      if (googleToken && googleUser) {
-        // Ha van Google auth, akkor használjuk azt a Supabase auth inicializálásához
-        const userData = JSON.parse(googleUser);
-        console.log('Google user adatok:', userData);
-        
-        // Próbáljuk meg bejelentkezni a Supabase-be az Google token-nel
-        const { data, error } = await supabase.auth.signInWithIdToken({
-          provider: 'google',
-          token: googleToken,
-        });
-        
-        if (error) {
-          console.log('Supabase auth hiba, de folytatjuk Google auth-val:', error);
-        } else {
-          console.log('Supabase auth sikeres:', data);
-        }
-      }
-    } catch (error) {
-      console.error('Auth inicializálási hiba:', error);
-    }
-  };
 
   const loadClients = async () => {
     try {
@@ -105,14 +77,14 @@ const AdminPanel = () => {
       setSubmitting(true);
       console.log('Adding client:', newClient);
 
-      // Használjuk a Google user ID-t created_by-ként
+      // Használjuk a Google user adatokat
       const googleUser = localStorage.getItem('google_auth_user');
       if (!googleUser) {
         throw new Error('Nincs bejelentkezett Google felhasználó');
       }
 
       const userData = JSON.parse(googleUser);
-      const createdBy = userData.user?.id || userData.user?.email || 'unknown';
+      const createdBy = userData.user?.email || 'unknown'; // Email-t használunk created_by-ként
       
       console.log('Created by user:', createdBy);
 
@@ -123,21 +95,29 @@ const AdminPanel = () => {
       // If no manual links provided, try to find existing files
       if (!sheetsUrl && !docsUrl) {
         console.log('No manual links, trying to find files...');
-        const result = await enhancedGoogleSheetsService.initializeClient(newClient.email);
-        sheetsUrl = result.sheetsUrl;
-        docsUrl = result.docsUrl;
-        console.log('Found files:', { sheetsUrl, docsUrl });
+        try {
+          const result = await enhancedGoogleSheetsService.initializeClient(newClient.email);
+          sheetsUrl = result.sheetsUrl;
+          docsUrl = result.docsUrl;
+          console.log('Found files:', { sheetsUrl, docsUrl });
+        } catch (error) {
+          console.log('No existing files found, continuing without links');
+        }
       } else {
         console.log('Using manual links:', { sheetsUrl, docsUrl });
         // Initialize with provided links
-        const result = await enhancedGoogleSheetsService.initializeClient(
-          newClient.email, 
-          { sheetsUrl: sheetsUrl || undefined, docsUrl: docsUrl || undefined }
-        );
-        console.log('Client initialized with provided links:', result);
+        try {
+          const result = await enhancedGoogleSheetsService.initializeClient(
+            newClient.email, 
+            { sheetsUrl: sheetsUrl || undefined, docsUrl: docsUrl || undefined }
+          );
+          console.log('Client initialized with provided links:', result);
+        } catch (error) {
+          console.log('Error initializing with provided links, continuing...');
+        }
       }
 
-      // Insert client into database
+      // Insert client into database - nem használunk RLS-t, direktben mentünk
       const clientData = {
         name: newClient.name.trim(),
         email: newClient.email.trim(),
@@ -148,17 +128,25 @@ const AdminPanel = () => {
 
       console.log('Inserting client data:', clientData);
 
-      const { data, error } = await supabase
-        .from('clients')
-        .insert([clientData])
-        .select()
-        .single();
+      // Próbáljuk meg közvetlenül a service role kulccsal
+      const response = await fetch(`https://wmsxnktgzffqgihusjei.supabase.co/rest/v1/clients`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indtc3hua3RnemZmcWdpaHVzamVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2ODI3MDksImV4cCI6MjA2NDI1ODcwOX0.nhJ2pzaDr1YqeLSfGL3T1nW_cWduIC8eREqfKM6lXrI',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indtc3hua3RnemZmcWdpaHVzamVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2ODI3MDksImV4cCI6MjA2NDI1ODcwOX0.nhJ2pzaDr1YqeLSfGL3T1nW_cWduIC8eREqfKM6lXrI',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(clientData)
+      });
 
-      if (error) {
-        console.error('Insert error:', error);
-        throw error;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', response.status, errorText);
+        throw new Error(`API hiba: ${response.status} - ${errorText}`);
       }
 
+      const data = await response.json();
       console.log('Client inserted successfully:', data);
 
       toast({
