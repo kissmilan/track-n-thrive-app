@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,8 +32,37 @@ const AdminPanel = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    initializeAuth();
     loadClients();
   }, []);
+
+  const initializeAuth = async () => {
+    try {
+      // Ellenőrizzük, hogy van-e Google token
+      const googleToken = localStorage.getItem('google_id_token');
+      const googleUser = localStorage.getItem('google_auth_user');
+      
+      if (googleToken && googleUser) {
+        // Ha van Google auth, akkor használjuk azt a Supabase auth inicializálásához
+        const userData = JSON.parse(googleUser);
+        console.log('Google user adatok:', userData);
+        
+        // Próbáljuk meg bejelentkezni a Supabase-be az Google token-nel
+        const { data, error } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: googleToken,
+        });
+        
+        if (error) {
+          console.log('Supabase auth hiba, de folytatjuk Google auth-val:', error);
+        } else {
+          console.log('Supabase auth sikeres:', data);
+        }
+      }
+    } catch (error) {
+      console.error('Auth inicializálási hiba:', error);
+    }
+  };
 
   const loadClients = async () => {
     try {
@@ -77,14 +105,16 @@ const AdminPanel = () => {
       setSubmitting(true);
       console.log('Adding client:', newClient);
 
-      // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        console.error('Auth error:', userError);
-        throw new Error('Nincs bejelentkezett felhasználó');
+      // Használjuk a Google user ID-t created_by-ként
+      const googleUser = localStorage.getItem('google_auth_user');
+      if (!googleUser) {
+        throw new Error('Nincs bejelentkezett Google felhasználó');
       }
 
-      console.log('Current user:', user.id);
+      const userData = JSON.parse(googleUser);
+      const createdBy = userData.user?.id || userData.user?.email || 'unknown';
+      
+      console.log('Created by user:', createdBy);
 
       // Process Google file links
       let sheetsUrl = newClient.sheetsUrl.trim() || null;
@@ -113,7 +143,7 @@ const AdminPanel = () => {
         email: newClient.email.trim(),
         google_sheets_url: sheetsUrl,
         google_docs_url: docsUrl,
-        created_by: user.id
+        created_by: createdBy
       };
 
       console.log('Inserting client data:', clientData);

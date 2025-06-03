@@ -20,8 +20,8 @@ const AuthButtons = ({ onGoogleAuth, isLoading }: AuthButtonsProps) => {
       const payload = JSON.parse(atob(credential.split('.')[1]));
       const userEmail = payload.email;
       
-      // Admin email ellenőrzés
-      const adminEmails = ['kissmilan93@gmail.com', 'kissmilanifit@gmail.com']; 
+      // Admin email ellenőrzés - frissített email cím
+      const adminEmails = ['milanka98@gmail.com', 'kissmilanifit@gmail.com']; 
       const isAdmin = adminEmails.includes(userEmail);
       
       // Ha admin próbál kliens módban belépni, akkor admin módba irányítjuk
