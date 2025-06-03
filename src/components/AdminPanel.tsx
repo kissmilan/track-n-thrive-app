@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -84,7 +83,7 @@ const AdminPanel = () => {
       }
 
       const userData = JSON.parse(googleUser);
-      const createdBy = userData.user?.email || 'unknown'; // Email-t használunk created_by-ként
+      const createdBy = userData.user?.email || 'unknown';
       
       console.log('Created by user:', createdBy);
 
@@ -117,7 +116,7 @@ const AdminPanel = () => {
         }
       }
 
-      // Insert client into database - nem használunk RLS-t, direktben mentünk
+      // Insert client into database using Supabase client
       const clientData = {
         name: newClient.name.trim(),
         email: newClient.email.trim(),
@@ -128,25 +127,17 @@ const AdminPanel = () => {
 
       console.log('Inserting client data:', clientData);
 
-      // Próbáljuk meg közvetlenül a service role kulccsal
-      const response = await fetch(`https://wmsxnktgzffqgihusjei.supabase.co/rest/v1/clients`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indtc3hua3RnemZmcWdpaHVzamVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2ODI3MDksImV4cCI6MjA2NDI1ODcwOX0.nhJ2pzaDr1YqeLSfGL3T1nW_cWduIC8eREqfKM6lXrI',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indtc3hua3RnemZmcWdpaHVzamVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg2ODI3MDksImV4cCI6MjA2NDI1ODcwOX0.nhJ2pzaDr1YqeLSfGL3T1nW_cWduIC8eREqfKM6lXrI',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(clientData)
-      });
+      const { data, error } = await supabase
+        .from('clients')
+        .insert(clientData)
+        .select()
+        .single();
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error:', response.status, errorText);
-        throw new Error(`API hiba: ${response.status} - ${errorText}`);
+      if (error) {
+        console.error('Supabase insert error:', error);
+        throw new Error(`Supabase hiba: ${error.message}`);
       }
 
-      const data = await response.json();
       console.log('Client inserted successfully:', data);
 
       toast({
