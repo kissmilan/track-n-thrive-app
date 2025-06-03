@@ -23,6 +23,7 @@ const AdminPanel = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [newClient, setNewClient] = useState({
     name: '',
     email: '',
@@ -37,12 +38,18 @@ const AdminPanel = () => {
 
   const loadClients = async () => {
     try {
+      console.log('Loading clients...');
       const { data, error } = await supabase
         .from('clients')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+      
+      console.log('Loaded clients:', data);
       setClients(data || []);
     } catch (error) {
       console.error('Error loading clients:', error);
@@ -67,64 +74,81 @@ const AdminPanel = () => {
     }
 
     try {
-      setLoading(true);
+      setSubmitting(true);
+      console.log('Adding client:', newClient);
 
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Nincs bejelentkezett felhasználó');
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        console.error('Auth error:', userError);
+        throw new Error('Nincs bejelentkezett felhasználó');
+      }
 
-      // Analyze client files if URLs provided
-      let sheetsUrl = newClient.sheetsUrl || null;
-      let docsUrl = newClient.docsUrl || null;
+      console.log('Current user:', user.id);
 
+      // Process Google file links
+      let sheetsUrl = newClient.sheetsUrl.trim() || null;
+      let docsUrl = newClient.docsUrl.trim() || null;
+
+      // If no manual links provided, try to find existing files
       if (!sheetsUrl && !docsUrl) {
-        // Try to find existing files by email
+        console.log('No manual links, trying to find files...');
         const result = await enhancedGoogleSheetsService.initializeClient(newClient.email);
         sheetsUrl = result.sheetsUrl;
         docsUrl = result.docsUrl;
+        console.log('Found files:', { sheetsUrl, docsUrl });
       } else {
+        console.log('Using manual links:', { sheetsUrl, docsUrl });
         // Initialize with provided links
         const result = await enhancedGoogleSheetsService.initializeClient(
           newClient.email, 
-          { sheetsUrl, docsUrl }
+          { sheetsUrl: sheetsUrl || undefined, docsUrl: docsUrl || undefined }
         );
         console.log('Client initialized with provided links:', result);
       }
 
       // Insert client into database
+      const clientData = {
+        name: newClient.name.trim(),
+        email: newClient.email.trim(),
+        google_sheets_url: sheetsUrl,
+        google_docs_url: docsUrl,
+        created_by: user.id
+      };
+
+      console.log('Inserting client data:', clientData);
+
       const { data, error } = await supabase
         .from('clients')
-        .insert([
-          {
-            name: newClient.name,
-            email: newClient.email,
-            google_sheets_url: sheetsUrl,
-            google_docs_url: docsUrl,
-            created_by: user.id
-          }
-        ])
+        .insert([clientData])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Insert error:', error);
+        throw error;
+      }
+
+      console.log('Client inserted successfully:', data);
 
       toast({
         title: "Kliens hozzáadva",
         description: `${newClient.name} sikeresen hozzáadva a rendszerhez.`,
       });
 
+      // Reset form and reload clients
       setNewClient({ name: '', email: '', sheetsUrl: '', docsUrl: '' });
       setShowAddForm(false);
-      loadClients();
+      await loadClients();
     } catch (error) {
       console.error('Error adding client:', error);
       toast({
         title: "Hiba",
-        description: "Nem sikerült hozzáadni a klienst.",
+        description: `Nem sikerült hozzáadni a klienst: ${error.message}`,
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -134,12 +158,16 @@ const AdminPanel = () => {
     }
 
     try {
+      console.log('Deleting client:', clientId);
       const { error } = await supabase
         .from('clients')
         .delete()
         .eq('id', clientId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
 
       toast({
         title: "Kliens törölve",
@@ -160,6 +188,7 @@ const AdminPanel = () => {
   const analyzeClientFiles = async (client: Client) => {
     try {
       setLoading(true);
+      console.log('Analyzing files for client:', client.email);
       
       const result = await enhancedGoogleSheetsService.initializeClient(
         client.email,
@@ -168,6 +197,8 @@ const AdminPanel = () => {
           docsUrl: client.google_docs_url || undefined
         }
       );
+
+      console.log('Analysis result:', result);
 
       toast({
         title: "Fájlok elemezve",
@@ -206,6 +237,7 @@ const AdminPanel = () => {
           <Button
             onClick={() => setShowAddForm(!showAddForm)}
             className="bg-yellow-400 hover:bg-yellow-500 text-black"
+            disabled={submitting}
           >
             <Plus className="w-4 h-4 mr-2" />
             Új kliens hozzáadása
@@ -226,6 +258,7 @@ const AdminPanel = () => {
                     onChange={(e) => setNewClient({ ...newClient, name: e.target.value })}
                     placeholder="Kliens neve"
                     className="bg-gray-800 border-gray-600 text-white"
+                    disabled={submitting}
                   />
                 </div>
                 <div>
@@ -236,6 +269,7 @@ const AdminPanel = () => {
                     onChange={(e) => setNewClient({ ...newClient, email: e.target.value })}
                     placeholder="kliens@email.com"
                     className="bg-gray-800 border-gray-600 text-white"
+                    disabled={submitting}
                   />
                 </div>
               </div>
@@ -248,6 +282,7 @@ const AdminPanel = () => {
                     onChange={(e) => setNewClient({ ...newClient, sheetsUrl: e.target.value })}
                     placeholder="https://docs.google.com/spreadsheets/d/..."
                     className="bg-gray-800 border-gray-600 text-white"
+                    disabled={submitting}
                   />
                 </div>
                 <div>
@@ -257,6 +292,7 @@ const AdminPanel = () => {
                     onChange={(e) => setNewClient({ ...newClient, docsUrl: e.target.value })}
                     placeholder="https://docs.google.com/document/d/..."
                     className="bg-gray-800 border-gray-600 text-white"
+                    disabled={submitting}
                   />
                 </div>
               </div>
@@ -264,15 +300,16 @@ const AdminPanel = () => {
               <div className="flex gap-2">
                 <Button
                   onClick={addClient}
-                  disabled={loading}
+                  disabled={submitting}
                   className="bg-green-600 hover:bg-green-700"
                 >
-                  {loading ? 'Hozzáadás...' : 'Kliens hozzáadása'}
+                  {submitting ? 'Hozzáadás...' : 'Kliens hozzáadása'}
                 </Button>
                 <Button
                   onClick={() => setShowAddForm(false)}
                   variant="outline"
                   className="border-gray-600 text-gray-300"
+                  disabled={submitting}
                 >
                   Mégse
                 </Button>
@@ -390,6 +427,7 @@ const AdminPanel = () => {
               <Button
                 onClick={() => setShowAddForm(true)}
                 className="bg-yellow-400 hover:bg-yellow-500 text-black"
+                disabled={submitting}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Első kliens hozzáadása

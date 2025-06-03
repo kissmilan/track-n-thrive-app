@@ -21,9 +21,18 @@ export class GoogleApiService {
         };
       }
 
-      const accessToken = await googleAuthService.getAccessToken();
+      // Try to get access token, but don't fail if not available
+      let accessToken;
+      try {
+        accessToken = await googleAuthService.getAccessToken();
+      } catch (error) {
+        console.log('No Google auth token available, using manual links only');
+        return { sheetsUrl: null, docsUrl: null, sheetsId: null, docsId: null };
+      }
+
       if (!accessToken) {
-        throw new Error('Nincs érvényes access token');
+        console.log('No access token available');
+        return { sheetsUrl: null, docsUrl: null, sheetsId: null, docsId: null };
       }
 
       // Search for existing files by email in name or content
@@ -78,20 +87,19 @@ export class GoogleApiService {
 
   async analyzeWorkoutStructure(sheetsId: string) {
     try {
-      const accessToken = await googleAuthService.getAccessToken();
-      if (!accessToken) {
-        throw new Error('Nincs érvényes access token');
+      // Use Google Sheets API with API key instead of OAuth
+      const apiKey = await this.getApiKey();
+      if (!apiKey) {
+        console.error('No Google API key available');
+        return { frequency: 2, sheets: [] };
       }
 
-      // Get all sheets in the spreadsheet
-      const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}?fields=sheets.properties`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        }
-      });
+      // Get all sheets in the spreadsheet using API key
+      const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}?fields=sheets.properties&key=${apiKey}`);
 
       if (!response.ok) {
-        throw new Error(`Sheets API hiba: ${response.statusText}`);
+        console.error(`Sheets API hiba: ${response.statusText}`);
+        return { frequency: 2, sheets: [] };
       }
 
       const data = await response.json();
@@ -102,7 +110,8 @@ export class GoogleApiService {
         const name = sheet.properties.title.toLowerCase();
         return name.includes('felső') || name.includes('láb') || name.includes('post') || 
                name.includes('push') || name.includes('pull') || name.includes('edzés') ||
-               /\d+\.\s*hét/i.test(name) || /hét\s*\d+/i.test(name);
+               /\d+\.\s*hét/i.test(name) || /hét\s*\d+/i.test(name) ||
+               name.includes('felsőtest') || name.includes('alsótest');
       });
 
       // Determine workout frequency based on sheet patterns
@@ -135,24 +144,21 @@ export class GoogleApiService {
 
   async importWorkoutData(sheetsId: string, sheetName: string) {
     try {
-      const accessToken = await googleAuthService.getAccessToken();
-      if (!accessToken) {
-        throw new Error('Nincs érvényes access token');
+      const apiKey = await this.getApiKey();
+      if (!apiKey) {
+        console.error('No Google API key available');
+        return [];
       }
 
-      // Import data from specific sheet
+      // Import data from specific sheet using API key
       const range = `'${sheetName}'!A:Z`; // Get all data from the sheet
       const response = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}/values/${encodeURIComponent(range)}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-          }
-        }
+        `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}/values/${encodeURIComponent(range)}?key=${apiKey}`
       );
 
       if (!response.ok) {
-        throw new Error(`Sheets API hiba: ${response.statusText}`);
+        console.error(`Sheets API hiba: ${response.statusText}`);
+        return [];
       }
 
       const data = await response.json();
@@ -168,20 +174,18 @@ export class GoogleApiService {
 
   async importMealData(sheetsId: string) {
     try {
-      const accessToken = await googleAuthService.getAccessToken();
-      if (!accessToken) {
-        throw new Error('Nincs érvényes access token');
+      const apiKey = await this.getApiKey();
+      if (!apiKey) {
+        console.error('No Google API key available');
+        return null;
       }
 
-      // Try to find meal-related sheets
-      const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}?fields=sheets.properties`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        }
-      });
+      // Try to find meal-related sheets using API key
+      const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}?fields=sheets.properties&key=${apiKey}`);
 
       if (!response.ok) {
-        throw new Error(`Sheets API hiba: ${response.statusText}`);
+        console.error(`Sheets API hiba: ${response.statusText}`);
+        return null;
       }
 
       const data = await response.json();
@@ -201,12 +205,7 @@ export class GoogleApiService {
         const range = `'${sheetName}'!A:Z`;
         
         const dataResponse = await fetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}/values/${encodeURIComponent(range)}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-            }
-          }
+          `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}/values/${encodeURIComponent(range)}?key=${apiKey}`
         );
 
         if (dataResponse.ok) {
@@ -224,20 +223,18 @@ export class GoogleApiService {
 
   async importWeightData(sheetsId: string) {
     try {
-      const accessToken = await googleAuthService.getAccessToken();
-      if (!accessToken) {
-        throw new Error('Nincs érvényes access token');
+      const apiKey = await this.getApiKey();
+      if (!apiKey) {
+        console.error('No Google API key available');
+        return [];
       }
 
-      // Find weight/stress sheet
-      const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}?fields=sheets.properties`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        }
-      });
+      // Find weight/stress sheet using API key
+      const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}?fields=sheets.properties&key=${apiKey}`);
 
       if (!response.ok) {
-        throw new Error(`Sheets API hiba: ${response.statusText}`);
+        console.error(`Sheets API hiba: ${response.statusText}`);
+        return [];
       }
 
       const data = await response.json();
@@ -253,12 +250,7 @@ export class GoogleApiService {
         const range = `'${sheetName}'!A:Z`;
         
         const dataResponse = await fetch(
-          `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}/values/${encodeURIComponent(range)}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-            }
-          }
+          `https://sheets.googleapis.com/v4/spreadsheets/${sheetsId}/values/${encodeURIComponent(range)}?key=${apiKey}`
         );
 
         if (dataResponse.ok) {
@@ -272,6 +264,22 @@ export class GoogleApiService {
       console.error('Hiba a súlyadatok importálásánál:', error);
       return [];
     }
+  }
+
+  private async getApiKey(): Promise<string | null> {
+    try {
+      // Try to get API key from Supabase secrets
+      const response = await fetch('/api/get-google-api-key');
+      if (response.ok) {
+        const data = await response.json();
+        return data.apiKey;
+      }
+    } catch (error) {
+      console.error('Error getting API key:', error);
+    }
+    
+    // Fallback to environment or return null
+    return null;
   }
 
   private parseWorkoutData(values: any[][], sheetName: string) {

@@ -1,9 +1,7 @@
+
 import { WorkoutSheet, WorkoutExercise, UserProgress } from '@/types/workout';
 import { MealOption, DailyMeals, ShoppingListItem } from '@/types/meal';
 import { WeightEntry, Supplement } from '@/types/tracking';
-import { getMockWorkoutSheets, getMockUserProgress } from './mockData/workoutMockData';
-import { getMockMealOptions, getMockDailyMeals } from './mockData/mealMockData';
-import { getMockWeightEntries, getMockSupplements } from './mockData/trackingMockData';
 import { generateShoppingList } from './utils/shoppingListUtils';
 import { enhancedGoogleSheetsService } from './enhancedGoogleSheetsService';
 

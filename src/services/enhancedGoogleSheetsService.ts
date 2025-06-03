@@ -21,7 +21,10 @@ export class EnhancedGoogleSheetsService {
       this.clientSheetsId = files.sheetsId;
       this.clientDocsId = files.docsId;
       
+      console.log('Found files:', files);
+      
       if (this.clientSheetsId) {
+        console.log('Analyzing workout structure for sheets ID:', this.clientSheetsId);
         this.workoutStructure = await googleApiService.analyzeWorkoutStructure(this.clientSheetsId);
         console.log('Workout structure analyzed:', this.workoutStructure);
       }
@@ -52,9 +55,11 @@ export class EnhancedGoogleSheetsService {
     }
 
     try {
+      console.log('Getting workout sheets from Google Sheets...');
       const workoutSheets = [];
       
       for (const sheet of this.workoutStructure.sheets) {
+        console.log('Importing data for sheet:', sheet.name);
         const exercises = await googleApiService.importWorkoutData(this.clientSheetsId, sheet.name);
         
         const workoutSheet: WorkoutSheet = {
@@ -71,6 +76,7 @@ export class EnhancedGoogleSheetsService {
         workoutSheets.push(workoutSheet);
       }
       
+      console.log('Loaded workout sheets:', workoutSheets);
       return workoutSheets.length > 0 ? workoutSheets : getMockWorkoutSheets();
     } catch (error) {
       console.error('Error getting workout sheets:', error);
@@ -85,12 +91,14 @@ export class EnhancedGoogleSheetsService {
     }
 
     try {
+      console.log('Getting meals data from Google Sheets...');
       const mealData = await googleApiService.importMealData(this.clientSheetsId);
       
       if (mealData) {
         const totalCalories = Object.values(mealData).flat().reduce((sum: number, meal: any) => sum + (meal.calories || 0), 0);
         const mealCount = Object.values(mealData).flat().length;
         
+        console.log('Loaded meal data:', mealData);
         return {
           ...mealData,
           totalCalories,
@@ -112,7 +120,9 @@ export class EnhancedGoogleSheetsService {
     }
 
     try {
+      console.log('Getting weight data from Google Sheets...');
       const weightData = await googleApiService.importWeightData(this.clientSheetsId);
+      console.log('Loaded weight data:', weightData);
       return weightData.length > 0 ? weightData : getMockWeightEntries();
     } catch (error) {
       console.error('Error getting weight entries:', error);
