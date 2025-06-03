@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,19 +18,40 @@ import WeightTracker from "./WeightTracker";
 import MealPlanner from "./MealPlanner";
 import MealViewer from "./MealViewer";
 import SupplementTracker from "./SupplementTracker";
-import { googleSheetsService, UserProgress } from "@/services/googleSheetsService";
+import { enhancedGoogleSheetsService } from "@/services/enhancedGoogleSheetsService";
+import { UserProgress } from "@/types/workout";
 
 const ClientDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
+  const [clientInitialized, setClientInitialized] = useState(false);
 
   useEffect(() => {
-    const loadUserProgress = async () => {
-      const progress = await googleSheetsService.getUserProgress();
-      setUserProgress(progress);
+    const initializeClient = async () => {
+      try {
+        // Get current user from localStorage
+        const userData = JSON.parse(localStorage.getItem('google_auth_user') || '{}');
+        const userEmail = userData?.user?.email;
+
+        if (userEmail) {
+          console.log('Initializing client dashboard for:', userEmail);
+          
+          // Initialize enhanced Google Sheets service for this client
+          const result = await enhancedGoogleSheetsService.initializeClient(userEmail);
+          console.log('Client initialization result:', result);
+          
+          setClientInitialized(true);
+          
+          // Load user progress
+          const progress = await enhancedGoogleSheetsService.getUserProgress();
+          setUserProgress(progress);
+        }
+      } catch (error) {
+        console.error('Error initializing client:', error);
+      }
     };
     
-    loadUserProgress();
+    initializeClient();
   }, []);
 
   const shouldShowStats = userProgress?.hasMinimumWorkouts ?? false;
@@ -40,8 +60,11 @@ const ClientDashboard = () => {
     <div className="min-h-screen bg-black">
       <div className="container mx-auto px-4 py-6">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Üdv, János! 👋</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">Üdv! 👋</h1>
           <p className="text-gray-400">Itt követheted a haladásodat és kezelheted az étrendedet</p>
+          {clientInitialized && (
+            <p className="text-green-400 text-sm mt-1">✓ Google fájlok betöltve és elemezve</p>
+          )}
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -82,9 +105,14 @@ const ClientDashboard = () => {
                   <p className="text-lg mb-4">
                     Kezdd el az edzéseidet, hogy láthasd a részletes statisztikákat és haladásodat!
                   </p>
-                  <p className="text-blue-100">
+                  <p className="text-blue-100 mb-2">
                     A dashboard funkcióit 5 edzés teljesítése után éred el.
                   </p>
+                  {clientInitialized && (
+                    <p className="text-blue-100 mb-4">
+                      ✓ A rendszer már betöltötte a Google fájljaidból az edzésterveket és adatokat.
+                    </p>
+                  )}
                   <div className="mt-4">
                     <Button 
                       onClick={() => setActiveTab("workout")}
@@ -196,7 +224,7 @@ const ClientDashboard = () => {
                       </div>
                       <div className="flex items-center gap-3 p-3 bg-orange-900/30 border border-orange-700 rounded-lg">
                         <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                        <span className="text-white">Láb edzés befejezése</span>
+                        <span className="text-white">Edzés befejezése</span>
                       </div>
                       <div className="flex items-center gap-3 p-3 bg-yellow-900/30 border border-yellow-700 rounded-lg">
                         <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>

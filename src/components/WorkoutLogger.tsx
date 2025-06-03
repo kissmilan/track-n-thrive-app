@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, Save, PlayCircle, CheckCircle, X, TrendingUp, Award } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { googleSheetsService, WorkoutSheet, WorkoutExercise } from "@/services/googleSheetsService";
+import { enhancedGoogleSheetsService } from "@/services/enhancedGoogleSheetsService";
+import { WorkoutSheet, WorkoutExercise } from "@/types/workout";
 import WorkoutSummary from "./WorkoutSummary";
 
 const WorkoutLogger = () => {
@@ -22,7 +22,10 @@ const WorkoutLogger = () => {
 
   useEffect(() => {
     const loadWorkoutSheets = async () => {
-      const sheets = await googleSheetsService.getWorkoutSheets();
+      console.log('Loading workout sheets from enhanced service...');
+      const sheets = await enhancedGoogleSheetsService.getWorkoutSheets();
+      console.log('Loaded sheets:', sheets);
+      
       setWorkoutSheets(sheets);
       if (sheets.length > 0) {
         setSelectedSheet(sheets[0].name);
@@ -107,7 +110,7 @@ const WorkoutLogger = () => {
       return;
     }
 
-    const success = await googleSheetsService.saveWorkoutData(selectedSheet, selectedWeek, currentExercises);
+    const success = await enhancedGoogleSheetsService.saveWorkoutData(selectedSheet, selectedWeek, currentExercises);
     if (success) {
       setWorkoutCompleted(true);
       setShowSummary(true);
@@ -147,6 +150,9 @@ const WorkoutLogger = () => {
       <Card className="bg-gray-900 border-gray-700">
         <CardHeader>
           <CardTitle className="text-white">Edzés kiválasztása</CardTitle>
+          {workoutSheets.length > 0 && (
+            <p className="text-green-400 text-sm">✓ Google Sheets-ből betöltve ({workoutSheets.length} edzésterv)</p>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
