@@ -12,7 +12,7 @@ export type Database = {
       clients: {
         Row: {
           created_at: string
-          created_by: string
+          created_by: string | null
           email: string
           google_docs_url: string | null
           google_sheets_url: string | null
@@ -22,7 +22,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          created_by: string
+          created_by?: string | null
           email: string
           google_docs_url?: string | null
           google_sheets_url?: string | null
@@ -32,7 +32,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           email?: string
           google_docs_url?: string | null
           google_sheets_url?: string | null

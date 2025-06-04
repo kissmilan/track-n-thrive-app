@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -77,17 +76,6 @@ const AdminPanel = () => {
       setSubmitting(true);
       console.log('Adding client:', newClient);
 
-      // Használjuk a Google user adatokat
-      const googleUser = localStorage.getItem('google_auth_user');
-      if (!googleUser) {
-        throw new Error('Nincs bejelentkezett Google felhasználó');
-      }
-
-      const userData = JSON.parse(googleUser);
-      const createdByEmail = userData.user?.email || 'unknown';
-      
-      console.log('Created by user:', createdByEmail);
-
       // Process Google file links
       let sheetsUrl = newClient.sheetsUrl.trim() || null;
       let docsUrl = newClient.docsUrl.trim() || null;
@@ -117,13 +105,12 @@ const AdminPanel = () => {
         }
       }
 
-      // Insert client into database - add back the required created_by field
+      // Insert client into database - only required fields
       const clientData = {
         name: newClient.name.trim(),
         email: newClient.email.trim(),
         google_sheets_url: sheetsUrl,
-        google_docs_url: docsUrl,
-        created_by: createdByEmail
+        google_docs_url: docsUrl
       };
 
       console.log('Inserting client data:', clientData);
