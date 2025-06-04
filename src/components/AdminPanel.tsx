@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -116,13 +117,13 @@ const AdminPanel = () => {
         }
       }
 
-      // Insert client into database - csak a szükséges mezőket küldjük
+      // Insert client into database - add back the required created_by field
       const clientData = {
         name: newClient.name.trim(),
         email: newClient.email.trim(),
         google_sheets_url: sheetsUrl,
-        google_docs_url: docsUrl
-        // created_by mezőt elhagyjuk, mert problémát okoz
+        google_docs_url: docsUrl,
+        created_by: createdByEmail
       };
 
       console.log('Inserting client data:', clientData);
