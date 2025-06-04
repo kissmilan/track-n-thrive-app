@@ -83,9 +83,9 @@ const AdminPanel = () => {
       }
 
       const userData = JSON.parse(googleUser);
-      const createdBy = userData.user?.email || 'unknown';
+      const createdByEmail = userData.user?.email || 'unknown';
       
-      console.log('Created by user:', createdBy);
+      console.log('Created by user:', createdByEmail);
 
       // Process Google file links
       let sheetsUrl = newClient.sheetsUrl.trim() || null;
@@ -116,13 +116,13 @@ const AdminPanel = () => {
         }
       }
 
-      // Insert client into database using Supabase client
+      // Insert client into database - csak a szükséges mezőket küldjük
       const clientData = {
         name: newClient.name.trim(),
         email: newClient.email.trim(),
         google_sheets_url: sheetsUrl,
-        google_docs_url: docsUrl,
-        created_by: createdBy
+        google_docs_url: docsUrl
+        // created_by mezőt elhagyjuk, mert problémát okoz
       };
 
       console.log('Inserting client data:', clientData);
