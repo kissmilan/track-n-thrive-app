@@ -76,36 +76,11 @@ const AdminPanel = () => {
       setSubmitting(true);
       console.log('Adding client:', newClient);
 
-      // Process Google file links
+      // Csak az URL-eket dolgozzuk fel, ne próbáljunk meg fájlokat inicializálni
       let sheetsUrl = newClient.sheetsUrl.trim() || null;
       let docsUrl = newClient.docsUrl.trim() || null;
 
-      // If no manual links provided, try to find existing files
-      if (!sheetsUrl && !docsUrl) {
-        console.log('No manual links, trying to find files...');
-        try {
-          const result = await enhancedGoogleSheetsService.initializeClient(newClient.email);
-          sheetsUrl = result.sheetsUrl;
-          docsUrl = result.docsUrl;
-          console.log('Found files:', { sheetsUrl, docsUrl });
-        } catch (error) {
-          console.log('No existing files found, continuing without links');
-        }
-      } else {
-        console.log('Using manual links:', { sheetsUrl, docsUrl });
-        // Initialize with provided links
-        try {
-          const result = await enhancedGoogleSheetsService.initializeClient(
-            newClient.email, 
-            { sheetsUrl: sheetsUrl || undefined, docsUrl: docsUrl || undefined }
-          );
-          console.log('Client initialized with provided links:', result);
-        } catch (error) {
-          console.log('Error initializing with provided links, continuing...');
-        }
-      }
-
-      // Insert client into database - only required fields
+      // Insert client into database - only basic data
       const clientData = {
         name: newClient.name.trim(),
         email: newClient.email.trim(),
@@ -123,7 +98,7 @@ const AdminPanel = () => {
 
       if (error) {
         console.error('Supabase insert error:', error);
-        throw new Error(`Supabase hiba: ${error.message}`);
+        throw new Error(`Adatbázis hiba: ${error.message}`);
       }
 
       console.log('Client inserted successfully:', data);
