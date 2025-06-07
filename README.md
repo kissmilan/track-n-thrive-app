@@ -81,3 +81,23 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## clients table Row Level Security
+
+The app saves basic information about each client in a `clients` table on
+Supabase. If Row Level Security (RLS) is enabled on this table, inserts from the
+public `anon` key require a policy that explicitly allows them. An example
+policy is shown below:
+
+```sql
+-- ensure RLS is turned on
+alter table clients enable row level security;
+
+-- allow any authenticated user to add new rows
+create policy "allow insert for authenticated" on public.clients
+for insert
+with check (auth.uid() is not null);
+```
+
+When using the anon key without such a policy, inserts will fail. In that case
+either create a policy like the above or disable RLS on the table.
